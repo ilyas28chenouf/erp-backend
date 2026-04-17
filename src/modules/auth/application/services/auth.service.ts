@@ -5,6 +5,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../../../users/application/services/users.service';
+import { BootstrapAdminDto } from '../dto/bootstrap-admin.dto';
 import { LoginDto } from '../dto/login.dto';
 
 @Injectable()
@@ -44,5 +45,9 @@ export class AuthService {
 
   async me(userId: string) {
     return this.usersService.findOne(userId);
+  }
+
+  async bootstrapAdmin(bootstrapAdminDto: BootstrapAdminDto) {
+    return this.usersService.bootstrapSuperAdmin(bootstrapAdminDto);
   }
 }

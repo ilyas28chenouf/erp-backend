@@ -14,7 +14,10 @@ import { UsersModule } from './modules/users/users.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: [
+        '/home/mekdev/config/erp-backend.env',
+        '.env',
+      ],
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],

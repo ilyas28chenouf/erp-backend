@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -13,6 +14,8 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { QueryUsersDto } from '../dto/query-users.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { UserOrmEntity } from '../../infrastructure/persistence/user.orm-entity';
+import { UserRole } from '../../domain/enums/user-role.enum';
+import { BootstrapAdminDto } from '../../../auth/application/dto/bootstrap-admin.dto';
 
 @Injectable()
 export class UsersService {
@@ -38,6 +41,24 @@ export class UsersService {
       passwordHash,
       role: createUserDto.role,
       isActive: createUserDto.isActive ?? true,
+    });
+  }
+
+  async bootstrapSuperAdmin(
+    bootstrapAdminDto: BootstrapAdminDto,
+  ): Promise<UserOrmEntity> {
+    const usersCount = await this.usersRepository.count();
+
+    if (usersCount > 0) {
+      throw new BadRequestException('Bootstrap already completed');
+    }
+
+    return this.create({
+      fullName: bootstrapAdminDto.fullName,
+      email: bootstrapAdminDto.email,
+      password: bootstrapAdminDto.password,
+      role: UserRole.SUPER_ADMIN,
+      isActive: true,
     });
   }
 

@@ -21,6 +21,10 @@ export class UsersRepository implements UsersRepositoryInterface {
     return this.repository.save(created);
   }
 
+  count(): Promise<number> {
+    return this.repository.count();
+  }
+
   async findAll(filters?: QueryUsersDto): Promise<UserOrmEntity[]> {
     const where: FindOptionsWhere<UserOrmEntity> = {};
 

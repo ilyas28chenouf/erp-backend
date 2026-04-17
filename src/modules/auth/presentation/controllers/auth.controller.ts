@@ -15,6 +15,7 @@ import {
 import { Request } from 'express';
 import { AuthService } from '../../application/services/auth.service';
 import { AuthResponseDto } from '../../application/dto/auth-response.dto';
+import { BootstrapAdminDto } from '../../application/dto/bootstrap-admin.dto';
 import { LoginDto } from '../../application/dto/login.dto';
 import { Public } from '../decorators/public.decorator';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -34,6 +35,23 @@ export class AuthController {
   })
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post('bootstrap-admin')
+  @Public()
+  @ApiOperation({
+    summary: 'Create the first SUPER_ADMIN user when the system is empty',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Bootstrap admin created successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bootstrap already completed.',
+  })
+  bootstrapAdmin(@Body() bootstrapAdminDto: BootstrapAdminDto) {
+    return this.authService.bootstrapAdmin(bootstrapAdminDto);
   }
 
   @Get('me')
