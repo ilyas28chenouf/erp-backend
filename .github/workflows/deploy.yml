@@ -1,0 +1,55 @@
+name: Deploy NestJS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Prepare release folder
+        run: |
+          mkdir -p /home/mekdev/apps/erp-backend-release
+          rm -rf /home/mekdev/apps/erp-backend-release/*
+          cp -r dist /home/mekdev/apps/erp-backend-release/
+          cp package.json /home/mekdev/apps/erp-backend-release/
+          cp package-lock.json /home/mekdev/apps/erp-backend-release/
+
+          if [ -f ecosystem.config.js ]; then
+            cp ecosystem.config.js /home/mekdev/apps/erp-backend-release/
+          fi
+
+      - name: Install production dependencies
+        run: |
+          cd /home/mekdev/apps/erp-backend-release
+          npm ci --omit=dev
+
+      - name: Replace app folder
+        run: |
+          mkdir -p /home/mekdev/apps
+          rm -rf /home/mekdev/apps/erp-backend
+          mv /home/mekdev/apps/erp-backend-release /home/mekdev/apps/erp-backend
+
+      - name: Restart with PM2
+        run: |
+          cd /home/mekdev/apps/erp-backend
+          pm2 delete erp-backend || true
+          pm2 start dist/main.js --name erp-backend
+          pm2 save
