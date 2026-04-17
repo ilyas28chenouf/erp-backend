@@ -1,0 +1,7 @@
+export enum ProjectStatus {
+  PLANNED = 'PLANNED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  ON_REVIEW = 'ON_REVIEW',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}

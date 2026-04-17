@@ -1,0 +1,8 @@
+export enum DocumentFolderType {
+  CONTRACTS = 'CONTRACTS',
+  ACTS = 'ACTS',
+  CONCLUSIONS = 'CONCLUSIONS',
+  WORK_FILES = 'WORK_FILES',
+  PHOTOS = 'PHOTOS',
+  OTHER = 'OTHER',
+}
