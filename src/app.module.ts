@@ -3,8 +3,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CustomersModule } from './modules/customers/customers.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { FinanceModule } from './modules/finance/finance.module';
+import { PlanFactModule } from './modules/plan-fact/plan-fact.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { TasksModule } from './modules/tasks/tasks.module';
@@ -35,12 +37,14 @@ import { UsersModule } from './modules/users/users.module';
       }),
     }),
     AuthModule,
+    CustomersModule,
     UsersModule,
     ProjectsModule,
     FinanceModule,
     DocumentsModule,
     TasksModule,
     AuditModule,
+    PlanFactModule,
     ReportsModule,
   ],
 })
