@@ -10,23 +10,25 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api');
+
   app.enableCors({
-      origin: [
-        'http://localhost:5173',
-        'http://127.0.0.1:5173',
-      ],
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      credentials: true,
-      allowedHeaders: ['Content-Type', 'Authorization'],
-    });
+    origin: [
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://192.168.0.220',
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+
   app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
-  await app.listen(3000, '0.0.0.0');
 
   app.useGlobalInterceptors(
     new ClassSerializerInterceptor(app.get(Reflector)),
@@ -44,7 +46,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(process.env.PORT ? Number(process.env.PORT) : 3000);
+  const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+  await app.listen(port, '0.0.0.0');
 }
-
 void bootstrap();
