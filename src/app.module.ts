@@ -11,6 +11,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { UsersModule } from './modules/users/users.module';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -47,5 +48,7 @@ import { UsersModule } from './modules/users/users.module';
     PlanFactModule,
     ReportsModule,
   ],
+  controllers: [HealthController],
+
 })
 export class AppModule {}
