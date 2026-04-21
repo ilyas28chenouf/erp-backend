@@ -1,27 +1,32 @@
 import { BudgetPlanOrmEntity } from '../../infrastructure/persistence/budget-plan.orm-entity';
 import { CounterpartyOrmEntity } from '../../infrastructure/persistence/counterparty.orm-entity';
 import { FinanceCategoryOrmEntity } from '../../infrastructure/persistence/finance-category.orm-entity';
+import { FinanceSubcategoryOrmEntity } from '../../infrastructure/persistence/finance-subcategory.orm-entity';
 import { PaymentRegistryEntryOrmEntity } from '../../infrastructure/persistence/payment-registry-entry.orm-entity';
 
 export interface FinanceRepositoryInterface {
-  createFinanceCategory(
-    entity: Partial<FinanceCategoryOrmEntity>,
-  ): Promise<FinanceCategoryOrmEntity>;
-  findFinanceCategories(
-    filters?: Record<string, unknown>,
-  ): Promise<FinanceCategoryOrmEntity[]>;
+  createFinanceCategory(entity: Partial<FinanceCategoryOrmEntity>): Promise<FinanceCategoryOrmEntity>;
+  findFinanceCategories(filters?: Record<string, unknown>): Promise<FinanceCategoryOrmEntity[]>;
   findFinanceCategoryById(id: string): Promise<FinanceCategoryOrmEntity | null>;
   updateFinanceCategory(
     id: string,
     payload: Partial<FinanceCategoryOrmEntity>,
   ): Promise<FinanceCategoryOrmEntity | null>;
   removeFinanceCategory(id: string): Promise<void>;
-  createCounterparty(
-    entity: Partial<CounterpartyOrmEntity>,
-  ): Promise<CounterpartyOrmEntity>;
-  findCounterparties(
+  createFinanceSubcategory(
+    entity: Partial<FinanceSubcategoryOrmEntity>,
+  ): Promise<FinanceSubcategoryOrmEntity>;
+  findFinanceSubcategories(
     filters?: Record<string, unknown>,
-  ): Promise<CounterpartyOrmEntity[]>;
+  ): Promise<FinanceSubcategoryOrmEntity[]>;
+  findFinanceSubcategoryById(id: string): Promise<FinanceSubcategoryOrmEntity | null>;
+  updateFinanceSubcategory(
+    id: string,
+    payload: Partial<FinanceSubcategoryOrmEntity>,
+  ): Promise<FinanceSubcategoryOrmEntity | null>;
+  removeFinanceSubcategory(id: string): Promise<void>;
+  createCounterparty(entity: Partial<CounterpartyOrmEntity>): Promise<CounterpartyOrmEntity>;
+  findCounterparties(filters?: Record<string, unknown>): Promise<CounterpartyOrmEntity[]>;
   findCounterpartyById(id: string): Promise<CounterpartyOrmEntity | null>;
   updateCounterparty(
     id: string,
@@ -31,12 +36,8 @@ export interface FinanceRepositoryInterface {
   createPaymentRegistryEntry(
     entity: Partial<PaymentRegistryEntryOrmEntity>,
   ): Promise<PaymentRegistryEntryOrmEntity>;
-  findPaymentRegistryEntries(
-    filters?: Record<string, unknown>,
-  ): Promise<PaymentRegistryEntryOrmEntity[]>;
-  findPaymentRegistryEntryById(
-    id: string,
-  ): Promise<PaymentRegistryEntryOrmEntity | null>;
+  findPaymentRegistryEntries(filters?: Record<string, unknown>): Promise<PaymentRegistryEntryOrmEntity[]>;
+  findPaymentRegistryEntryById(id: string): Promise<PaymentRegistryEntryOrmEntity | null>;
   updatePaymentRegistryEntry(
     id: string,
     payload: Partial<PaymentRegistryEntryOrmEntity>,

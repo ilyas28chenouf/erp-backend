@@ -1,17 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
-import { FinanceCategoryType } from '../../domain/enums/finance-category-type.enum';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class CreateFinanceCategoryDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'Аренда' })
   @IsString()
   name: string;
 
-  @ApiProperty({ enum: FinanceCategoryType, enumName: 'FinanceCategoryType' })
-  @IsEnum(FinanceCategoryType)
-  type: FinanceCategoryType;
-
-  @ApiProperty({ required: false, default: true })
+  @ApiProperty({ required: false, default: true, example: true })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;

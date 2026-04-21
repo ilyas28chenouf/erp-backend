@@ -4,14 +4,17 @@ import type { FinanceRepositoryInterface } from '../../domain/interfaces/finance
 import { CreateBudgetPlanDto } from '../dto/create-budget-plan.dto';
 import { CreateCounterpartyDto } from '../dto/create-counterparty.dto';
 import { CreateFinanceCategoryDto } from '../dto/create-finance-category.dto';
+import { CreateFinanceSubcategoryDto } from '../dto/create-finance-subcategory.dto';
 import { CreatePaymentRegistryEntryDto } from '../dto/create-payment-registry-entry.dto';
 import { QueryBudgetPlansDto } from '../dto/query-budget-plans.dto';
 import { QueryCounterpartiesDto } from '../dto/query-counterparties.dto';
 import { QueryFinanceCategoriesDto } from '../dto/query-finance-categories.dto';
+import { QueryFinanceSubcategoriesDto } from '../dto/query-finance-subcategories.dto';
 import { QueryPaymentRegistryEntriesDto } from '../dto/query-payment-registry-entries.dto';
 import { UpdateBudgetPlanDto } from '../dto/update-budget-plan.dto';
 import { UpdateCounterpartyDto } from '../dto/update-counterparty.dto';
 import { UpdateFinanceCategoryDto } from '../dto/update-finance-category.dto';
+import { UpdateFinanceSubcategoryDto } from '../dto/update-finance-subcategory.dto';
 import { UpdatePaymentRegistryEntryDto } from '../dto/update-payment-registry-entry.dto';
 
 @Injectable()
@@ -22,13 +25,14 @@ export class FinanceService {
   ) {}
 
   createFinanceCategory(dto: CreateFinanceCategoryDto) {
-    return this.financeRepository.createFinanceCategory({ ...dto, isActive: dto.isActive ?? true });
+    return this.financeRepository.createFinanceCategory({
+      ...dto,
+      isActive: dto.isActive ?? true,
+    });
   }
 
   findFinanceCategories(query: QueryFinanceCategoriesDto) {
-    return this.financeRepository.findFinanceCategories(
-      query as Record<string, unknown>,
-    );
+    return this.financeRepository.findFinanceCategories(query as Record<string, unknown>);
   }
 
   async findFinanceCategory(id: string) {
@@ -48,14 +52,40 @@ export class FinanceService {
     await this.financeRepository.removeFinanceCategory(id);
   }
 
+  createFinanceSubcategory(dto: CreateFinanceSubcategoryDto) {
+    return this.financeRepository.createFinanceSubcategory({
+      ...dto,
+      isActive: dto.isActive ?? true,
+    });
+  }
+
+  findFinanceSubcategories(query: QueryFinanceSubcategoriesDto) {
+    return this.financeRepository.findFinanceSubcategories(query as Record<string, unknown>);
+  }
+
+  async findFinanceSubcategory(id: string) {
+    const entity = await this.financeRepository.findFinanceSubcategoryById(id);
+    if (!entity) throw new NotFoundException(`Finance subcategory with id "${id}" was not found.`);
+    return entity;
+  }
+
+  async updateFinanceSubcategory(id: string, dto: UpdateFinanceSubcategoryDto) {
+    const updated = await this.financeRepository.updateFinanceSubcategory(id, dto);
+    if (!updated) throw new NotFoundException(`Finance subcategory with id "${id}" was not found.`);
+    return updated;
+  }
+
+  async removeFinanceSubcategory(id: string) {
+    await this.findFinanceSubcategory(id);
+    await this.financeRepository.removeFinanceSubcategory(id);
+  }
+
   createCounterparty(dto: CreateCounterpartyDto) {
     return this.financeRepository.createCounterparty(dto);
   }
 
   findCounterparties(query: QueryCounterpartiesDto) {
-    return this.financeRepository.findCounterparties(
-      query as Record<string, unknown>,
-    );
+    return this.financeRepository.findCounterparties(query as Record<string, unknown>);
   }
 
   async findCounterparty(id: string) {
@@ -76,16 +106,11 @@ export class FinanceService {
   }
 
   createPaymentRegistryEntry(dto: CreatePaymentRegistryEntryDto) {
-    return this.financeRepository.createPaymentRegistryEntry({
-      ...dto,
-      operationDate: dto.operationDate.toISOString().slice(0, 10),
-    });
+    return this.financeRepository.createPaymentRegistryEntry(dto);
   }
 
   findPaymentRegistryEntries(query: QueryPaymentRegistryEntriesDto) {
-    return this.financeRepository.findPaymentRegistryEntries(
-      query as Record<string, unknown>,
-    );
+    return this.financeRepository.findPaymentRegistryEntries(query as Record<string, unknown>);
   }
 
   async findPaymentRegistryEntry(id: string) {
@@ -95,10 +120,7 @@ export class FinanceService {
   }
 
   async updatePaymentRegistryEntry(id: string, dto: UpdatePaymentRegistryEntryDto) {
-    const updated = await this.financeRepository.updatePaymentRegistryEntry(id, {
-      ...dto,
-      operationDate: dto.operationDate ? dto.operationDate.toISOString().slice(0, 10) : undefined,
-    });
+    const updated = await this.financeRepository.updatePaymentRegistryEntry(id, dto);
     if (!updated) throw new NotFoundException(`Payment registry entry with id "${id}" was not found.`);
     return updated;
   }

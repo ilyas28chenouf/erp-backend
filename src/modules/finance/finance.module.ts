@@ -5,26 +5,30 @@ import { FinanceService } from './application/services/finance.service';
 import { BudgetPlanOrmEntity } from './infrastructure/persistence/budget-plan.orm-entity';
 import { CounterpartyOrmEntity } from './infrastructure/persistence/counterparty.orm-entity';
 import { FinanceCategoryOrmEntity } from './infrastructure/persistence/finance-category.orm-entity';
+import { FinanceSubcategoryOrmEntity } from './infrastructure/persistence/finance-subcategory.orm-entity';
 import { PaymentRegistryEntryOrmEntity } from './infrastructure/persistence/payment-registry-entry.orm-entity';
 import { FinanceRepository } from './infrastructure/repositories/finance.repository';
 import { BudgetPlansController } from './presentation/controllers/budget-plans.controller';
 import { CounterpartiesController } from './presentation/controllers/counterparties.controller';
 import { FinanceCategoriesController } from './presentation/controllers/finance-categories.controller';
+import { FinanceSubcategoriesController } from './presentation/controllers/finance-subcategories.controller';
 import { PaymentRegistryEntriesController } from './presentation/controllers/payment-registry-entries.controller';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       FinanceCategoryOrmEntity,
-      CounterpartyOrmEntity,
+      FinanceSubcategoryOrmEntity,
       PaymentRegistryEntryOrmEntity,
+      CounterpartyOrmEntity,
       BudgetPlanOrmEntity,
     ]),
   ],
   controllers: [
     FinanceCategoriesController,
-    CounterpartiesController,
+    FinanceSubcategoriesController,
     PaymentRegistryEntriesController,
+    CounterpartiesController,
     BudgetPlansController,
   ],
   providers: [

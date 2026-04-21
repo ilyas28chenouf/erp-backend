@@ -8,16 +8,11 @@ import {
 import { BaseUuidEntity } from '../../../../common/base.entity';
 import { ProjectOrmEntity } from '../../../projects/infrastructure/persistence/project.orm-entity';
 import { UserOrmEntity } from '../../../users/infrastructure/persistence/user.orm-entity';
-import { PaymentRegistryEntryType } from '../../domain/enums/payment-registry-entry-type.enum';
 import { CounterpartyOrmEntity } from './counterparty.orm-entity';
-import { FinanceCategoryOrmEntity } from './finance-category.orm-entity';
+import { FinanceSubcategoryOrmEntity } from './finance-subcategory.orm-entity';
 
 @Entity({ name: 'payment_registry_entries' })
 export class PaymentRegistryEntryOrmEntity extends BaseUuidEntity {
-  @ApiProperty({ enum: PaymentRegistryEntryType, enumName: 'PaymentRegistryEntryType' })
-  @Column({ type: 'enum', enum: PaymentRegistryEntryType })
-  type: PaymentRegistryEntryType;
-
   @ApiProperty({ nullable: true })
   @Column({ type: 'uuid', nullable: true })
   projectId?: string | null;
@@ -26,17 +21,29 @@ export class PaymentRegistryEntryOrmEntity extends BaseUuidEntity {
   @Column({ type: 'uuid', nullable: true })
   counterpartyId?: string | null;
 
-  @ApiProperty({ example: '1000.00' })
-  @Column({ type: 'decimal', precision: 14, scale: 2 })
-  amount: string;
-
-  @ApiProperty({ type: String, format: 'date' })
-  @Column({ type: 'date' })
-  operationDate: string;
-
-  @ApiProperty()
+  @ApiProperty({ example: '349000.00' })
   @Column({ type: 'uuid' })
-  categoryId: string;
+  subcategoryId: string;
+
+  @ApiProperty({ example: '349000.00' })
+  @Column({ type: 'decimal', precision: 14, scale: 2 })
+  planAmount: string;
+
+  @ApiProperty({ example: '349000.00' })
+  @Column({ type: 'decimal', precision: 14, scale: 2 })
+  factAmount: string;
+
+  @ApiProperty({ example: 2026 })
+  @Column({ type: 'int' })
+  year: number;
+
+  @ApiProperty({ example: 1 })
+  @Column({ type: 'int' })
+  month: number;
+
+  @ApiProperty({ example: 'с 26.01.2026 по 01.02.2026' })
+  @Column({ type: 'varchar', length: 255 })
+  weekLabel: string;
 
   @ApiProperty({ nullable: true })
   @Column({ type: 'text', nullable: true })
@@ -64,15 +71,11 @@ export class PaymentRegistryEntryOrmEntity extends BaseUuidEntity {
   @JoinColumn({ name: 'counterpartyId' })
   counterparty?: CounterpartyOrmEntity | null;
 
-  @ManyToOne(
-    () => FinanceCategoryOrmEntity,
-    (category) => category.paymentRegistryEntries,
-    {
-      onDelete: 'RESTRICT',
-    },
-  )
-  @JoinColumn({ name: 'categoryId' })
-  category: FinanceCategoryOrmEntity;
+  @ManyToOne(() => FinanceSubcategoryOrmEntity, (subcategory) => subcategory.paymentRegistryEntries, {
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'subcategoryId' })
+  subcategory: FinanceSubcategoryOrmEntity;
 
   @ManyToOne(() => UserOrmEntity, (user) => user.paymentRegistryEntries, {
     nullable: true,

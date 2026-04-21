@@ -15,14 +15,14 @@ export class PaymentRegistryEntriesController {
   constructor(private readonly financeService: FinanceService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create payment registry entry' })
+  @ApiOperation({ summary: 'Create weekly payment registry entry' })
   @ApiResponse({ status: 201, description: 'Payment registry entry created.' })
   create(@Body() dto: CreatePaymentRegistryEntryDto) {
     return this.financeService.createPaymentRegistryEntry(dto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'List payment registry entries' })
+  @ApiOperation({ summary: 'List weekly payment registry entries' })
   @ApiResponse({ status: 200, description: 'Payment registry entries returned.' })
   findAll(@Query() query: QueryPaymentRegistryEntriesDto) {
     return this.financeService.findPaymentRegistryEntries(query);

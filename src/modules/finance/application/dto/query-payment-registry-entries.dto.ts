@@ -1,12 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsUUID } from 'class-validator';
-import { PaymentRegistryEntryType } from '../../domain/enums/payment-registry-entry-type.enum';
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 export class QueryPaymentRegistryEntriesDto {
-  @ApiPropertyOptional({ enum: PaymentRegistryEntryType, enumName: 'PaymentRegistryEntryType' })
+  @ApiPropertyOptional()
   @IsOptional()
-  @IsEnum(PaymentRegistryEntryType)
-  type?: PaymentRegistryEntryType;
+  @IsUUID()
+  subcategoryId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -20,6 +20,22 @@ export class QueryPaymentRegistryEntriesDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
-  categoryId?: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(2000)
+  @Max(3000)
+  year?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  month?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  weekLabel?: string;
 }

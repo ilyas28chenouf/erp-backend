@@ -4,11 +4,13 @@ import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { QueryBudgetPlansDto } from '../../application/dto/query-budget-plans.dto';
 import { QueryCounterpartiesDto } from '../../application/dto/query-counterparties.dto';
 import { QueryFinanceCategoriesDto } from '../../application/dto/query-finance-categories.dto';
+import { QueryFinanceSubcategoriesDto } from '../../application/dto/query-finance-subcategories.dto';
 import { QueryPaymentRegistryEntriesDto } from '../../application/dto/query-payment-registry-entries.dto';
 import { FinanceRepositoryInterface } from '../../domain/interfaces/finance.repository.interface';
 import { BudgetPlanOrmEntity } from '../persistence/budget-plan.orm-entity';
 import { CounterpartyOrmEntity } from '../persistence/counterparty.orm-entity';
 import { FinanceCategoryOrmEntity } from '../persistence/finance-category.orm-entity';
+import { FinanceSubcategoryOrmEntity } from '../persistence/finance-subcategory.orm-entity';
 import { PaymentRegistryEntryOrmEntity } from '../persistence/payment-registry-entry.orm-entity';
 
 @Injectable()
@@ -16,6 +18,8 @@ export class FinanceRepository implements FinanceRepositoryInterface {
   constructor(
     @InjectRepository(FinanceCategoryOrmEntity)
     private readonly financeCategoriesRepository: Repository<FinanceCategoryOrmEntity>,
+    @InjectRepository(FinanceSubcategoryOrmEntity)
+    private readonly financeSubcategoriesRepository: Repository<FinanceSubcategoryOrmEntity>,
     @InjectRepository(CounterpartyOrmEntity)
     private readonly counterpartiesRepository: Repository<CounterpartyOrmEntity>,
     @InjectRepository(PaymentRegistryEntryOrmEntity)
@@ -25,21 +29,25 @@ export class FinanceRepository implements FinanceRepositoryInterface {
   ) {}
 
   createFinanceCategory(entity: Partial<FinanceCategoryOrmEntity>) {
-    return this.financeCategoriesRepository.save(
-      this.financeCategoriesRepository.create(entity),
-    );
+    return this.financeCategoriesRepository.save(this.financeCategoriesRepository.create(entity));
   }
 
   findFinanceCategories(filters?: QueryFinanceCategoriesDto) {
     const where: FindOptionsWhere<FinanceCategoryOrmEntity> = {};
-    if (filters?.type) where.type = filters.type;
     if (filters?.name) where.name = ILike(`%${filters.name}%`);
     if (typeof filters?.isActive === 'boolean') where.isActive = filters.isActive;
-    return this.financeCategoriesRepository.find({ where, order: { createdAt: 'DESC' } });
+    return this.financeCategoriesRepository.find({
+      where,
+      relations: { subcategories: true },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   findFinanceCategoryById(id: string) {
-    return this.financeCategoriesRepository.findOne({ where: { id } });
+    return this.financeCategoriesRepository.findOne({
+      where: { id },
+      relations: { subcategories: true },
+    });
   }
 
   async updateFinanceCategory(id: string, payload: Partial<FinanceCategoryOrmEntity>) {
@@ -51,6 +59,43 @@ export class FinanceRepository implements FinanceRepositoryInterface {
 
   async removeFinanceCategory(id: string) {
     await this.financeCategoriesRepository.delete(id);
+  }
+
+  createFinanceSubcategory(entity: Partial<FinanceSubcategoryOrmEntity>) {
+    return this.financeSubcategoriesRepository.save(this.financeSubcategoriesRepository.create(entity));
+  }
+
+  findFinanceSubcategories(filters?: QueryFinanceSubcategoriesDto) {
+    return this.financeSubcategoriesRepository.find({
+      where: {
+        categoryId: filters?.categoryId,
+        type: filters?.type,
+        isActive: filters?.isActive,
+      },
+      relations: { category: true, paymentRegistryEntries: true },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  findFinanceSubcategoryById(id: string) {
+    return this.financeSubcategoriesRepository.findOne({
+      where: { id },
+      relations: { category: true, paymentRegistryEntries: true },
+    });
+  }
+
+  async updateFinanceSubcategory(
+    id: string,
+    payload: Partial<FinanceSubcategoryOrmEntity>,
+  ) {
+    const existing = await this.findFinanceSubcategoryById(id);
+    if (!existing) return null;
+    Object.assign(existing, payload);
+    return this.financeSubcategoriesRepository.save(existing);
+  }
+
+  async removeFinanceSubcategory(id: string) {
+    await this.financeSubcategoriesRepository.delete(id);
   }
 
   createCounterparty(entity: Partial<CounterpartyOrmEntity>) {
@@ -80,28 +125,36 @@ export class FinanceRepository implements FinanceRepositoryInterface {
   }
 
   createPaymentRegistryEntry(entity: Partial<PaymentRegistryEntryOrmEntity>) {
-    return this.paymentRegistryEntriesRepository.save(
-      this.paymentRegistryEntriesRepository.create(entity),
-    );
+    return this.paymentRegistryEntriesRepository.save(this.paymentRegistryEntriesRepository.create(entity));
   }
 
-  findPaymentRegistryEntries(filters?: QueryPaymentRegistryEntriesDto) {
-    return this.paymentRegistryEntriesRepository.find({
-      where: {
-        type: filters?.type,
-        projectId: filters?.projectId,
-        counterpartyId: filters?.counterpartyId,
-        categoryId: filters?.categoryId,
-      },
-      relations: { project: true, counterparty: true, category: true, createdByUser: true },
-      order: { operationDate: 'DESC', createdAt: 'DESC' },
-    });
+  async findPaymentRegistryEntries(filters?: QueryPaymentRegistryEntriesDto) {
+    const qb = this.paymentRegistryEntriesRepository
+      .createQueryBuilder('entry')
+      .leftJoinAndSelect('entry.project', 'project')
+      .leftJoinAndSelect('entry.counterparty', 'counterparty')
+      .leftJoinAndSelect('entry.subcategory', 'subcategory')
+      .leftJoinAndSelect('subcategory.category', 'category')
+      .leftJoinAndSelect('entry.createdByUser', 'createdByUser')
+      .orderBy('entry.year', 'DESC')
+      .addOrderBy('entry.month', 'DESC')
+      .addOrderBy('entry.weekLabel', 'ASC')
+      .addOrderBy('entry.createdAt', 'DESC');
+
+    if (filters?.subcategoryId) qb.andWhere('entry.subcategoryId = :subcategoryId', { subcategoryId: filters.subcategoryId });
+    if (filters?.projectId) qb.andWhere('entry.projectId = :projectId', { projectId: filters.projectId });
+    if (filters?.counterpartyId) qb.andWhere('entry.counterpartyId = :counterpartyId', { counterpartyId: filters.counterpartyId });
+    if (typeof filters?.year === 'number') qb.andWhere('entry.year = :year', { year: filters.year });
+    if (typeof filters?.month === 'number') qb.andWhere('entry.month = :month', { month: filters.month });
+    if (filters?.weekLabel) qb.andWhere('entry.weekLabel = :weekLabel', { weekLabel: filters.weekLabel });
+
+    return qb.getMany();
   }
 
   findPaymentRegistryEntryById(id: string) {
     return this.paymentRegistryEntriesRepository.findOne({
       where: { id },
-      relations: { project: true, counterparty: true, category: true, createdByUser: true },
+      relations: { project: true, counterparty: true, subcategory: { category: true }, createdByUser: true },
     });
   }
 
