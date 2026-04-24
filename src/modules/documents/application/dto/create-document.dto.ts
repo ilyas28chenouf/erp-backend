@@ -3,20 +3,35 @@ import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validato
 import { DocumentType } from '../../domain/enums/document-type.enum';
 
 export class CreateDocumentDto {
-  @ApiProperty()
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    example: null,
+  })
+  @IsOptional()
   @IsUUID()
-  projectId: string;
+  projectId?: string | null;
 
-  @ApiProperty({ required: false, nullable: true })
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    example: 'uuid',
+  })
   @IsOptional()
   @IsUUID()
   folderId?: string | null;
 
-  @ApiProperty()
+  @ApiProperty({
+    example: 'exam_Levscha_Andrey_Viktorovich.pdf',
+  })
   @IsString()
   title: string;
 
-  @ApiProperty({ enum: DocumentType, enumName: 'DocumentType' })
+  @ApiProperty({
+    enum: DocumentType,
+    enumName: 'DocumentType',
+    example: DocumentType.OTHER,
+  })
   @IsEnum(DocumentType)
   documentType: DocumentType;
 
@@ -26,7 +41,7 @@ export class CreateDocumentDto {
   @Min(1)
   currentVersionNumber?: number;
 
-  @ApiProperty({ required: false, nullable: true })
+  @ApiProperty({ required: false, nullable: true, example: null })
   @IsOptional()
   @IsUUID()
   createdByUserId?: string | null;

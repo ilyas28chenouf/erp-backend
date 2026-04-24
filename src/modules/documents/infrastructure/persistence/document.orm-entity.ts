@@ -9,19 +9,23 @@ import { DocumentVersionOrmEntity } from './document-version.orm-entity';
 
 @Entity({ name: 'documents' })
 export class DocumentOrmEntity extends BaseUuidEntity {
-  @ApiProperty()
-  @Column({ type: 'uuid' })
-  projectId: string;
+  @ApiProperty({ nullable: true, example: null })
+  @Column({ type: 'uuid', nullable: true })
+  projectId?: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ nullable: true, example: 'uuid' })
   @Column({ type: 'uuid', nullable: true })
   folderId?: string | null;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'exam_Levscha_Andrey_Viktorovich.pdf' })
   @Column({ type: 'varchar', length: 255 })
   title: string;
 
-  @ApiProperty({ enum: DocumentType, enumName: 'DocumentType' })
+  @ApiProperty({
+    enum: DocumentType,
+    enumName: 'DocumentType',
+    example: DocumentType.OTHER,
+  })
   @Column({ type: 'enum', enum: DocumentType })
   documentType: DocumentType;
 
@@ -34,10 +38,11 @@ export class DocumentOrmEntity extends BaseUuidEntity {
   createdByUserId?: string | null;
 
   @ManyToOne(() => ProjectOrmEntity, (project) => project.documents, {
-    onDelete: 'CASCADE',
+    nullable: true,
+    onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'projectId' })
-  project: ProjectOrmEntity;
+  project?: ProjectOrmEntity | null;
 
   @ManyToOne(() => DocumentFolderOrmEntity, (folder) => folder.documents, {
     nullable: true,

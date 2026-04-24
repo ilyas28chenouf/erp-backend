@@ -2,7 +2,7 @@ import { DocumentType } from '../enums/document-type.enum';
 
 export class Document {
   id: string;
-  projectId: string;
+  projectId?: string | null;
   folderId?: string | null;
   title: string;
   documentType: DocumentType;
