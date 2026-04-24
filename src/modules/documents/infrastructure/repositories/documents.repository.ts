@@ -132,7 +132,8 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
       .createQueryBuilder('documentVersion')
       .leftJoinAndSelect('documentVersion.document', 'document')
       .leftJoinAndSelect('documentVersion.uploadedByUser', 'uploadedByUser')
-      .orderBy('documentVersion.createdAt', 'DESC');
+      .orderBy('documentVersion.versionNumber', 'DESC')
+      .addOrderBy('documentVersion.createdAt', 'DESC');
 
     if (filters?.documentId) {
       queryBuilder.andWhere('documentVersion.documentId = :documentId', {

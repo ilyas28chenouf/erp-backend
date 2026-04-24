@@ -25,9 +25,9 @@ import { DocumentVersionsController } from './presentation/controllers/document-
   ],
   controllers: [
     DocumentFoldersController,
-    DocumentsController,
     DocumentVersionsController,
     DocumentVersionCommentsController,
+    DocumentsController,
   ],
   providers: [
     DocumentsService,
