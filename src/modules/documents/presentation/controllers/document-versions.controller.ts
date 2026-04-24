@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -23,12 +24,23 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { Response } from 'express';
 import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../auth/presentation/guards/roles.guard';
 import { CreateDocumentVersionDto } from '../../application/dto/create-document-version.dto';
 import { QueryDocumentVersionsDto } from '../../application/dto/query-document-versions.dto';
 import { UpdateDocumentVersionDto } from '../../application/dto/update-document-version.dto';
 import { DocumentsService } from '../../application/services/documents.service';
+
+function getDocumentsStorageRoot(): string {
+  const storageRoot = process.env.DOCUMENTS_STORAGE_PATH;
+
+  if (!storageRoot) {
+    throw new Error('DOCUMENTS_STORAGE_PATH is not configured.');
+  }
+
+  return path.resolve(storageRoot);
+}
 
 @ApiTags('Document Versions')
 @ApiBearerAuth()
@@ -42,16 +54,18 @@ export class DocumentVersionsController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (req, file, callback) => {
-          const documentId = String(req.body.documentId ?? '').trim();
-          const uploadDir = path.join(
-            process.cwd(),
-            'uploads',
-            'documents',
-            documentId || 'unknown',
-          );
+          try {
+            const documentId = String(req.body.documentId ?? '').trim();
+            const uploadDir = path.join(
+              getDocumentsStorageRoot(),
+              documentId || 'unknown',
+            );
 
-          fs.mkdirSync(uploadDir, { recursive: true });
-          callback(null, uploadDir);
+            fs.mkdirSync(uploadDir, { recursive: true });
+            callback(null, uploadDir);
+          } catch (error) {
+            callback(error as Error, '');
+          }
         },
         filename: (req, file, callback) => {
           const safeOriginalName = file.originalname.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
@@ -103,6 +117,23 @@ export class DocumentVersionsController {
   @ApiResponse({ status: 200, description: 'Document versions returned.' })
   findAll(@Query() query: QueryDocumentVersionsDto) {
     return this.documentsService.findDocumentVersions(query);
+  }
+
+  @Get(':id/file')
+  @ApiOperation({ summary: 'Download document version file' })
+  @ApiResponse({ status: 200, description: 'Document version file returned.' })
+  async getFile(@Param('id') id: string, @Res({ passthrough: true }) res: Response) {
+    const { documentVersion, file } = await this.documentsService.getDocumentVersionFile(
+      id,
+    );
+
+    res.setHeader('Content-Type', documentVersion.mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${encodeURIComponent(documentVersion.fileName)}"`,
+    );
+
+    return file;
   }
 
   @Get(':id')

@@ -3,8 +3,11 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  StreamableFile,
 } from '@nestjs/common';
 import { Express } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
 import { DOCUMENTS_REPOSITORY } from '../../domain/interfaces/documents.repository.interface';
 import type { DocumentsRepositoryInterface } from '../../domain/interfaces/documents.repository.interface';
 import { UsersService } from '../../../users/application/services/users.service';
@@ -114,12 +117,15 @@ export class DocumentsService {
       dto.documentId,
     );
     const versionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
+    const relativeFilePath = path
+      .join(dto.documentId, file.filename)
+      .replace(/\\/g, '/');
 
     return this.documentsRepository.createDocumentVersion({
       documentId: dto.documentId,
       versionNumber,
       fileName: file.originalname,
-      filePath: file.path.replace(/\\/g, '/'),
+      filePath: relativeFilePath,
       mimeType: file.mimetype,
       sizeBytes: file.size,
       uploadedByUserId: dto.uploadedByUserId ?? null,
@@ -150,6 +156,25 @@ export class DocumentsService {
   async removeDocumentVersion(id: string) {
     await this.findDocumentVersion(id);
     await this.documentsRepository.removeDocumentVersion(id);
+  }
+
+  async getDocumentVersionFile(id: string) {
+    const documentVersion = await this.findDocumentVersion(id);
+    const storageRoot = this.getDocumentsStorageRoot();
+    const absoluteFilePath = path.resolve(storageRoot, documentVersion.filePath);
+
+    if (!absoluteFilePath.startsWith(path.resolve(storageRoot))) {
+      throw new BadRequestException('Invalid stored file path.');
+    }
+
+    if (!fs.existsSync(absoluteFilePath)) {
+      throw new NotFoundException('Stored file was not found on disk.');
+    }
+
+    return {
+      documentVersion,
+      file: new StreamableFile(fs.createReadStream(absoluteFilePath)),
+    };
   }
 
   async createDocumentVersionComment(dto: CreateDocumentVersionCommentDto) {
@@ -288,5 +313,17 @@ export class DocumentsService {
     );
 
     return 1 + Math.max(...childHeights);
+  }
+
+  private getDocumentsStorageRoot(): string {
+    const storageRoot = process.env.DOCUMENTS_STORAGE_PATH;
+
+    if (!storageRoot) {
+      throw new BadRequestException(
+        'DOCUMENTS_STORAGE_PATH is not configured.',
+      );
+    }
+
+    return path.resolve(storageRoot);
   }
 }
