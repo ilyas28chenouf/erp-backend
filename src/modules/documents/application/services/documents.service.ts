@@ -177,11 +177,17 @@ export class DocumentsService {
     };
   }
 
-  async createDocumentVersionComment(dto: CreateDocumentVersionCommentDto) {
+  async createDocumentVersionComment(
+    dto: CreateDocumentVersionCommentDto,
+    authorUserId: string,
+  ) {
     await this.findDocumentVersion(dto.documentVersionId);
-    await this.usersService.findOne(dto.authorUserId);
+    await this.usersService.findOne(authorUserId);
 
-    return this.documentsRepository.createDocumentVersionComment(dto);
+    return this.documentsRepository.createDocumentVersionComment({
+      ...dto,
+      authorUserId,
+    });
   }
 
   findDocumentVersionComments(query: QueryDocumentVersionCommentsDto) {

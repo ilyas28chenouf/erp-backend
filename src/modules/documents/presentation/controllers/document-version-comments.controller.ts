@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../auth/presentation/guards/roles.guard';
 import { CreateDocumentVersionCommentDto } from '../../application/dto/create-document-version-comment.dto';
@@ -17,8 +18,11 @@ export class DocumentVersionCommentsController {
   @Post()
   @ApiOperation({ summary: 'Create document version comment' })
   @ApiResponse({ status: 201, description: 'Document version comment created.' })
-  create(@Body() dto: CreateDocumentVersionCommentDto) {
-    return this.documentsService.createDocumentVersionComment(dto);
+  create(
+    @Body() dto: CreateDocumentVersionCommentDto,
+    @Req() req: Request & { user: { id: string } },
+  ) {
+    return this.documentsService.createDocumentVersionComment(dto, req.user.id);
   }
 
   @Get()

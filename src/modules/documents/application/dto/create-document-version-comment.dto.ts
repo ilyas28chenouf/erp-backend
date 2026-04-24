@@ -6,10 +6,6 @@ export class CreateDocumentVersionCommentDto {
   @IsUUID()
   documentVersionId: string;
 
-  @ApiProperty({ example: 'uuid' })
-  @IsUUID()
-  authorUserId: string;
-
   @ApiProperty({
     example: 'Please update section 2 before final approval.',
   })
