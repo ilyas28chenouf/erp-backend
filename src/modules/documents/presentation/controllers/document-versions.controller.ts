@@ -1,5 +1,28 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import * as fs from 'fs';
+import * as path from 'path';
 import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../auth/presentation/guards/roles.guard';
 import { CreateDocumentVersionDto } from '../../application/dto/create-document-version.dto';
@@ -15,10 +38,64 @@ export class DocumentVersionsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create document version' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req, file, callback) => {
+          const documentId = String(req.body.documentId ?? '').trim();
+          const uploadDir = path.join(
+            process.cwd(),
+            'uploads',
+            'documents',
+            documentId || 'unknown',
+          );
+
+          fs.mkdirSync(uploadDir, { recursive: true });
+          callback(null, uploadDir);
+        },
+        filename: (req, file, callback) => {
+          const safeOriginalName = file.originalname.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
+          callback(null, `${Date.now()}-${safeOriginalName}`);
+        },
+      }),
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['documentId', 'file'],
+      properties: {
+        documentId: {
+          type: 'string',
+          format: 'uuid',
+          example: 'uuid',
+        },
+        uploadedByUserId: {
+          type: 'string',
+          format: 'uuid',
+          nullable: true,
+          example: null,
+        },
+        comment: {
+          type: 'string',
+          nullable: true,
+          example: 'Updated after customer corrections',
+        },
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiOperation({ summary: 'Upload a new document version file' })
   @ApiResponse({ status: 201, description: 'Document version created.' })
-  create(@Body() dto: CreateDocumentVersionDto) {
-    return this.documentsService.createDocumentVersion(dto);
+  create(
+    @Body() dto: CreateDocumentVersionDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.documentsService.createDocumentVersion(dto, file);
   }
 
   @Get()

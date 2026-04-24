@@ -153,6 +153,13 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
     });
   }
 
+  findLatestDocumentVersion(documentId: string) {
+    return this.documentVersionsRepository.findOne({
+      where: { documentId },
+      order: { versionNumber: 'DESC' },
+    });
+  }
+
   async updateDocumentVersion(
     id: string,
     payload: Partial<DocumentVersionOrmEntity>,

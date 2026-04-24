@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Express } from 'express';
 import { DOCUMENTS_REPOSITORY } from '../../domain/interfaces/documents.repository.interface';
 import type { DocumentsRepositoryInterface } from '../../domain/interfaces/documents.repository.interface';
 import { UsersService } from '../../../users/application/services/users.service';
@@ -95,8 +96,35 @@ export class DocumentsService {
     await this.documentsRepository.removeDocument(id);
   }
 
-  createDocumentVersion(dto: CreateDocumentVersionDto) {
-    return this.documentsRepository.createDocumentVersion(dto);
+  async createDocumentVersion(
+    dto: CreateDocumentVersionDto,
+    file?: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('File is required.');
+    }
+
+    await this.findDocument(dto.documentId);
+
+    if (dto.uploadedByUserId) {
+      await this.usersService.findOne(dto.uploadedByUserId);
+    }
+
+    const latestVersion = await this.documentsRepository.findLatestDocumentVersion(
+      dto.documentId,
+    );
+    const versionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
+
+    return this.documentsRepository.createDocumentVersion({
+      documentId: dto.documentId,
+      versionNumber,
+      fileName: file.originalname,
+      filePath: file.path.replace(/\\/g, '/'),
+      mimeType: file.mimetype,
+      sizeBytes: file.size,
+      uploadedByUserId: dto.uploadedByUserId ?? null,
+      comment: dto.comment ?? null,
+    });
   }
 
   findDocumentVersions(query: QueryDocumentVersionsDto) {

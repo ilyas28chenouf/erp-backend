@@ -25,6 +25,9 @@ export interface DocumentsRepositoryInterface {
   ): Promise<DocumentVersionOrmEntity>;
   findDocumentVersions(filters?: Record<string, unknown>): Promise<DocumentVersionOrmEntity[]>;
   findDocumentVersionById(id: string): Promise<DocumentVersionOrmEntity | null>;
+  findLatestDocumentVersion(
+    documentId: string,
+  ): Promise<DocumentVersionOrmEntity | null>;
   updateDocumentVersion(
     id: string,
     payload: Partial<DocumentVersionOrmEntity>,
