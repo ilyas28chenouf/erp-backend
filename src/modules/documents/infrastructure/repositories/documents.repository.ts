@@ -128,16 +128,19 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
   }
 
   findDocumentVersions(filters?: QueryDocumentVersionsDto) {
-    return this.documentVersionsRepository.find({
-      where: {
-        documentId: filters?.documentId,
-      },
-      relations: {
-        document: true,
-        uploadedByUser: true,
-      },
-      order: { createdAt: 'DESC' },
-    });
+    const queryBuilder = this.documentVersionsRepository
+      .createQueryBuilder('documentVersion')
+      .leftJoinAndSelect('documentVersion.document', 'document')
+      .leftJoinAndSelect('documentVersion.uploadedByUser', 'uploadedByUser')
+      .orderBy('documentVersion.createdAt', 'DESC');
+
+    if (filters?.documentId) {
+      queryBuilder.andWhere('documentVersion.documentId = :documentId', {
+        documentId: filters.documentId,
+      });
+    }
+
+    return queryBuilder.getMany();
   }
 
   findDocumentVersionById(id: string) {
