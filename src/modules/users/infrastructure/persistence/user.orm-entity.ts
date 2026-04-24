@@ -3,6 +3,7 @@ import { Exclude } from 'class-transformer';
 import { BaseUuidEntity } from '../../../../common/base.entity';
 import { AuditLogOrmEntity } from '../../../audit/infrastructure/persistence/audit-log.orm-entity';
 import { DocumentOrmEntity } from '../../../documents/infrastructure/persistence/document.orm-entity';
+import { DocumentVersionCommentOrmEntity } from '../../../documents/infrastructure/persistence/document-version-comment.orm-entity';
 import { DocumentVersionOrmEntity } from '../../../documents/infrastructure/persistence/document-version.orm-entity';
 import { PaymentRegistryEntryOrmEntity } from '../../../finance/infrastructure/persistence/payment-registry-entry.orm-entity';
 import { ProjectOrmEntity } from '../../../projects/infrastructure/persistence/project.orm-entity';
@@ -57,6 +58,12 @@ export class UserOrmEntity extends BaseUuidEntity {
     (documentVersion) => documentVersion.uploadedByUser,
   )
   uploadedDocumentVersions?: DocumentVersionOrmEntity[];
+
+  @OneToMany(
+    () => DocumentVersionCommentOrmEntity,
+    (documentVersionComment) => documentVersionComment.authorUser,
+  )
+  documentVersionComments?: DocumentVersionCommentOrmEntity[];
 
   @OneToMany(() => TaskOrmEntity, (task) => task.assigneeUser)
   assignedTasks?: TaskOrmEntity[];

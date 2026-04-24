@@ -7,9 +7,13 @@ import { DocumentOrmEntity } from './document.orm-entity';
 
 @Entity({ name: 'document_folders' })
 export class DocumentFolderOrmEntity extends BaseUuidEntity {
-  @ApiProperty()
-  @Column({ type: 'uuid' })
-  projectId: string;
+  @ApiProperty({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  projectId?: string | null;
+
+  @ApiProperty({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  parentFolderId?: string | null;
 
   @ApiProperty()
   @Column({ type: 'varchar', length: 255 })
@@ -20,10 +24,28 @@ export class DocumentFolderOrmEntity extends BaseUuidEntity {
   type: DocumentFolderType;
 
   @ManyToOne(() => ProjectOrmEntity, (project) => project.documentFolders, {
-    onDelete: 'CASCADE',
+    nullable: true,
+    onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'projectId' })
-  project: ProjectOrmEntity;
+  project?: ProjectOrmEntity | null;
+
+  @ManyToOne(
+    () => DocumentFolderOrmEntity,
+    (documentFolder) => documentFolder.childFolders,
+    {
+      nullable: true,
+      onDelete: 'SET NULL',
+    },
+  )
+  @JoinColumn({ name: 'parentFolderId' })
+  parentFolder?: DocumentFolderOrmEntity | null;
+
+  @OneToMany(
+    () => DocumentFolderOrmEntity,
+    (documentFolder) => documentFolder.parentFolder,
+  )
+  childFolders?: DocumentFolderOrmEntity[];
 
   @OneToMany(() => DocumentOrmEntity, (document) => document.folder)
   documents?: DocumentOrmEntity[];

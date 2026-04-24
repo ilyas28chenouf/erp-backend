@@ -1,17 +1,35 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import { DocumentFolderType } from '../../domain/enums/document-folder-type.enum';
 
 export class CreateDocumentFolderDto {
-  @ApiProperty()
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    example: null,
+  })
+  @IsOptional()
   @IsUUID()
-  projectId: string;
+  projectId?: string | null;
 
-  @ApiProperty()
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    example: null,
+  })
+  @IsOptional()
+  @IsUUID()
+  parentFolderId?: string | null;
+
+  @ApiProperty({ example: 'Contracts 2026' })
   @IsString()
   name: string;
 
-  @ApiProperty({ enum: DocumentFolderType, enumName: 'DocumentFolderType' })
+  @ApiProperty({
+    enum: DocumentFolderType,
+    enumName: 'DocumentFolderType',
+    example: DocumentFolderType.CONTRACTS,
+  })
   @IsEnum(DocumentFolderType)
   type: DocumentFolderType;
 }

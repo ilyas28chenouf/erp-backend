@@ -1,4 +1,5 @@
 import { DocumentFolderOrmEntity } from '../../infrastructure/persistence/document-folder.orm-entity';
+import { DocumentVersionCommentOrmEntity } from '../../infrastructure/persistence/document-version-comment.orm-entity';
 import { DocumentOrmEntity } from '../../infrastructure/persistence/document.orm-entity';
 import { DocumentVersionOrmEntity } from '../../infrastructure/persistence/document-version.orm-entity';
 
@@ -29,6 +30,20 @@ export interface DocumentsRepositoryInterface {
     payload: Partial<DocumentVersionOrmEntity>,
   ): Promise<DocumentVersionOrmEntity | null>;
   removeDocumentVersion(id: string): Promise<void>;
+  createDocumentVersionComment(
+    entity: Partial<DocumentVersionCommentOrmEntity>,
+  ): Promise<DocumentVersionCommentOrmEntity>;
+  findDocumentVersionComments(
+    filters?: Record<string, unknown>,
+  ): Promise<DocumentVersionCommentOrmEntity[]>;
+  findDocumentVersionCommentById(
+    id: string,
+  ): Promise<DocumentVersionCommentOrmEntity | null>;
+  updateDocumentVersionComment(
+    id: string,
+    payload: Partial<DocumentVersionCommentOrmEntity>,
+  ): Promise<DocumentVersionCommentOrmEntity | null>;
+  removeDocumentVersionComment(id: string): Promise<void>;
 }
 
 export const DOCUMENTS_REPOSITORY = Symbol('DOCUMENTS_REPOSITORY');

@@ -2,10 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { QueryDocumentFoldersDto } from '../../application/dto/query-document-folders.dto';
+import { QueryDocumentVersionCommentsDto } from '../../application/dto/query-document-version-comments.dto';
 import { QueryDocumentVersionsDto } from '../../application/dto/query-document-versions.dto';
 import { QueryDocumentsDto } from '../../application/dto/query-documents.dto';
 import { DocumentsRepositoryInterface } from '../../domain/interfaces/documents.repository.interface';
 import { DocumentFolderOrmEntity } from '../persistence/document-folder.orm-entity';
+import { DocumentVersionCommentOrmEntity } from '../persistence/document-version-comment.orm-entity';
 import { DocumentOrmEntity } from '../persistence/document.orm-entity';
 import { DocumentVersionOrmEntity } from '../persistence/document-version.orm-entity';
 
@@ -18,6 +20,8 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
     private readonly documentsRepository: Repository<DocumentOrmEntity>,
     @InjectRepository(DocumentVersionOrmEntity)
     private readonly documentVersionsRepository: Repository<DocumentVersionOrmEntity>,
+    @InjectRepository(DocumentVersionCommentOrmEntity)
+    private readonly documentVersionCommentsRepository: Repository<DocumentVersionCommentOrmEntity>,
   ) {}
 
   createDocumentFolder(entity: Partial<DocumentFolderOrmEntity>) {
@@ -30,9 +34,15 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
     return this.documentFoldersRepository.find({
       where: {
         projectId: filters?.projectId,
+        parentFolderId: filters?.parentFolderId,
         type: filters?.type,
       },
-      relations: { project: true, documents: true },
+      relations: {
+        project: true,
+        parentFolder: true,
+        childFolders: true,
+        documents: true,
+      },
       order: { createdAt: 'DESC' },
     });
   }
@@ -40,7 +50,12 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
   findDocumentFolderById(id: string) {
     return this.documentFoldersRepository.findOne({
       where: { id },
-      relations: { project: true, documents: true },
+      relations: {
+        project: true,
+        parentFolder: true,
+        childFolders: true,
+        documents: true,
+      },
     });
   }
 
@@ -149,5 +164,51 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
 
   async removeDocumentVersion(id: string) {
     await this.documentVersionsRepository.delete(id);
+  }
+
+  createDocumentVersionComment(entity: Partial<DocumentVersionCommentOrmEntity>) {
+    return this.documentVersionCommentsRepository.save(
+      this.documentVersionCommentsRepository.create(entity),
+    );
+  }
+
+  findDocumentVersionComments(filters?: QueryDocumentVersionCommentsDto) {
+    return this.documentVersionCommentsRepository.find({
+      where: {
+        documentVersionId: filters?.documentVersionId,
+        authorUserId: filters?.authorUserId,
+      },
+      relations: {
+        documentVersion: true,
+        authorUser: true,
+      },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  findDocumentVersionCommentById(id: string) {
+    return this.documentVersionCommentsRepository.findOne({
+      where: { id },
+      relations: {
+        documentVersion: true,
+        authorUser: true,
+      },
+    });
+  }
+
+  async updateDocumentVersionComment(
+    id: string,
+    payload: Partial<DocumentVersionCommentOrmEntity>,
+  ) {
+    const existing = await this.findDocumentVersionCommentById(id);
+    if (!existing) {
+      return null;
+    }
+    Object.assign(existing, payload);
+    return this.documentVersionCommentsRepository.save(existing);
+  }
+
+  async removeDocumentVersionComment(id: string) {
+    await this.documentVersionCommentsRepository.delete(id);
   }
 }

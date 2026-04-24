@@ -8,6 +8,11 @@ export class QueryDocumentFoldersDto {
   @IsUUID()
   projectId?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  parentFolderId?: string;
+
   @ApiPropertyOptional({ enum: DocumentFolderType, enumName: 'DocumentFolderType' })
   @IsOptional()
   @IsEnum(DocumentFolderType)
