@@ -140,11 +140,12 @@ export class DocumentsService {
     const relativeFilePath = path
       .join(relativeDirectory, file.filename)
       .replace(/\\/g, '/');
+    const originalFileName = Buffer.from(file.originalname, 'latin1').toString('utf8');
 
     const createdVersion = await this.documentsRepository.createDocumentVersion({
       documentId: dto.documentId,
       versionNumber,
-      fileName: file.originalname,
+      fileName: originalFileName,
       filePath: relativeFilePath,
       mimeType: file.mimetype,
       sizeBytes: file.size,
