@@ -134,9 +134,9 @@ export class DocumentsService {
       await this.documentsRepository.findLatestDocumentVersion(dto.documentId);
     const versionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
 
-    const relativeDirectory = path
-      .join('documents', dto.documentId)
-      .replace(/\\/g, '/');
+    // Keep storage layout consistent with your real files:
+    // /home/mekdev/storage/erp-documents/<documentId>/<filename>
+    const relativeDirectory = dto.documentId;
     const relativeFilePath = path
       .join(relativeDirectory, file.filename)
       .replace(/\\/g, '/');
@@ -316,9 +316,9 @@ export class DocumentsService {
 
     const finalFileName = `${safeFileNameBase}.${originalExt}`;
 
-    const relativeDirectory = path
-      .join('documents', document.id)
-      .replace(/\\/g, '/');
+    // Keep storage layout consistent with your real files:
+    // /home/mekdev/storage/erp-documents/<documentId>/<filename>
+    const relativeDirectory = document.id;
     const absoluteDirectory = path.resolve(
       this.getDocumentsStorageRoot(),
       relativeDirectory,

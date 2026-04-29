@@ -1,12 +1,12 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   Post,
   Res,
-  BadRequestException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -49,30 +49,44 @@ export class DocumentVersionOnlyOfficeController {
     });
   }
 
-@Post('callback/:versionId')
-async callback(@Param('versionId') versionId: string, @Body() body: any) {
-  console.log('ONLYOFFICE callback versionId:', versionId);
-  console.log('ONLYOFFICE callback body:', JSON.stringify(body, null, 2));
+  @Public()
+  @Post('callback/:versionId')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'ONLYOFFICE callback' })
+  @ApiResponse({ status: 200, description: 'ONLYOFFICE callback handled.' })
+  async callback(
+    @Param('versionId') versionId: string,
+    @Body() body: OnlyOfficeCallbackBody,
+  ) {
+    console.log('ONLYOFFICE callback versionId:', versionId);
+    console.log('ONLYOFFICE callback body:', JSON.stringify(body, null, 2));
 
-  try {
-    if (!body || typeof body.status !== 'number') {
-      throw new BadRequestException('Invalid ONLYOFFICE callback payload.');
+    try {
+      if (!body || typeof body.status !== 'number') {
+        throw new BadRequestException('Invalid ONLYOFFICE callback payload.');
+      }
+
+      if (body.status === 2 || body.status === 6) {
+        if (!body.url) {
+          throw new BadRequestException(
+            'ONLYOFFICE callback payload is missing file url.',
+          );
+        }
+
+        console.log('Downloading edited file from:', body.url);
+
+        await this.documentsService.saveOnlyOfficeEditedVersion(
+          versionId,
+          body.url,
+          body.filetype,
+        );
+      }
+
+      console.log('ONLYOFFICE callback success');
+      return { error: 0 };
+    } catch (error) {
+      console.error('ONLYOFFICE callback failed:', error);
+      return { error: 1 };
     }
-
-    if (body.status === 2 || body.status === 6) {
-      console.log('Downloading edited file from:', body.url);
-      await this.documentsService.saveOnlyOfficeEditedVersion(
-        versionId,
-        body.url,
-        body.filetype,
-      );
-    }
-
-    console.log('ONLYOFFICE callback success');
-    return { error: 0 };
-  } catch (error) {
-    console.error('ONLYOFFICE callback failed:', error);
-    return { error: 1 };
   }
-}
 }
