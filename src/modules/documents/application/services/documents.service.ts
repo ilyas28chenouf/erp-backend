@@ -280,83 +280,60 @@ export class DocumentsService {
     await this.documentsRepository.removeDocumentVersionComment(id);
   }
 
-  async saveOnlyOfficeEditedVersion(
-    sourceVersionId: string,
-    downloadUrl: string,
-    fileType?: string,
-  ) {
-    const sourceVersion = await this.findDocumentVersion(sourceVersionId);
-    const document = await this.findDocument(sourceVersion.documentId);
+async saveOnlyOfficeEditedVersion(
+  sourceVersionId: string,
+  downloadUrl: string,
+  fileType?: string,
+) {
+  const sourceVersion = await this.findDocumentVersion(sourceVersionId);
 
-    const response = await fetch(downloadUrl);
-    if (!response.ok) {
-      throw new InternalServerErrorException(
-        `ONLYOFFICE file download failed with status ${response.status}.`,
-      );
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const latestVersion =
-      await this.documentsRepository.findLatestDocumentVersion(document.id);
-    const nextVersionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
-
-    const originalExt =
-      fileType?.replace('.', '') ||
-      path.extname(sourceVersion.fileName).replace('.', '') ||
-      'bin';
-
-    const safeFileNameBase = path
-      .basename(
-        document.title || sourceVersion.fileName,
-        path.extname(sourceVersion.fileName),
-      )
-      .replace(/[^\p{L}\p{N}\-_. ]/gu, '_');
-
-    const finalFileName = `${safeFileNameBase}.${originalExt}`;
-
-    // Keep storage layout consistent with your real files:
-    // /home/mekdev/storage/erp-documents/<documentId>/<filename>
-    const relativeDirectory = document.id;
-    const absoluteDirectory = path.resolve(
-      this.getDocumentsStorageRoot(),
-      relativeDirectory,
+  const response = await fetch(downloadUrl);
+  if (!response.ok) {
+    throw new InternalServerErrorException(
+      `ONLYOFFICE file download failed with status ${response.status}.`,
     );
+  }
 
-    await fs.mkdir(absoluteDirectory, { recursive: true });
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
 
-    const storedFileName = `${Date.now()}-${randomUUID()}-${finalFileName}`;
-    const absoluteFilePath = path.join(absoluteDirectory, storedFileName);
+  const storageRoot = this.getDocumentsStorageRoot();
+  const absoluteFilePath = path.resolve(storageRoot, sourceVersion.filePath);
 
-    await fs.writeFile(absoluteFilePath, buffer);
+  if (!absoluteFilePath.startsWith(storageRoot)) {
+    throw new BadRequestException('Invalid stored file path.');
+  }
 
-    const relativeFilePath = path
-      .join(relativeDirectory, storedFileName)
-      .replace(/\\/g, '/');
+  const absoluteDirectory = path.dirname(absoluteFilePath);
+  await fs.mkdir(absoluteDirectory, { recursive: true });
 
-    const createdVersion = await this.documentsRepository.createDocumentVersion({
-      documentId: document.id,
-      versionNumber: nextVersionNumber,
-      fileName: finalFileName,
-      filePath: relativeFilePath,
+  await fs.writeFile(absoluteFilePath, buffer);
+
+  const originalExt =
+    fileType?.replace('.', '') ||
+    path.extname(sourceVersion.fileName).replace('.', '') ||
+    'bin';
+
+  const updatedVersion = await this.documentsRepository.updateDocumentVersion(
+    sourceVersion.id,
+    {
       mimeType: this.resolveMimeTypeFromExtension(
         originalExt,
         sourceVersion.mimeType,
       ),
       sizeBytes: buffer.byteLength,
-      uploadedByUserId:
-        sourceVersion.uploadedByUserId ?? document.createdByUserId ?? null,
       comment: 'Saved from ONLYOFFICE',
-    });
+    },
+  );
 
-    await this.documentsRepository.updateDocument(document.id, {
-      currentVersionNumber: nextVersionNumber,
-    } as MutableDocumentUpdate);
-
-    return createdVersion;
+  if (!updatedVersion) {
+    throw new NotFoundException(
+      `Document version with id "${sourceVersion.id}" was not found.`,
+    );
   }
 
+  return updatedVersion;
+}
   private async validateFolderHierarchy(
     dto: Pick<CreateDocumentFolderDto, 'parentFolderId'>,
     currentFolderId?: string,
