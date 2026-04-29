@@ -7,6 +7,7 @@ import {
   Res,
   BadRequestException,
   InternalServerErrorException,
+  HttpCode,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -50,6 +51,7 @@ export class DocumentVersionOnlyOfficeController {
   }
 
 @Post('callback/:versionId')
+@HttpCode(200)
 async callback(@Param('versionId') versionId: string, @Body() body: any) {
   console.log('ONLYOFFICE callback versionId:', versionId);
   console.log('ONLYOFFICE callback body:', JSON.stringify(body, null, 2));
@@ -68,7 +70,6 @@ async callback(@Param('versionId') versionId: string, @Body() body: any) {
       );
     }
 
-    console.log('ONLYOFFICE callback success');
     return { error: 0 };
   } catch (error) {
     console.error('ONLYOFFICE callback failed:', error);
