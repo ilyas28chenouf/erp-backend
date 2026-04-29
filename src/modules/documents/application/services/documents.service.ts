@@ -2,15 +2,19 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   StreamableFile,
 } from '@nestjs/common';
-import { Express } from 'express';
-import * as fs from 'fs';
+import { ConfigService } from '@nestjs/config';
+import { createReadStream, existsSync, promises as fs } from 'fs';
 import * as path from 'path';
+import { randomUUID } from 'crypto';
+
+import { UsersService } from '../../../users/application/services/users.service';
 import { DOCUMENTS_REPOSITORY } from '../../domain/interfaces/documents.repository.interface';
 import type { DocumentsRepositoryInterface } from '../../domain/interfaces/documents.repository.interface';
-import { UsersService } from '../../../users/application/services/users.service';
+
 import { CreateDocumentFolderDto } from '../dto/create-document-folder.dto';
 import { CreateDocumentVersionCommentDto } from '../dto/create-document-version-comment.dto';
 import { CreateDocumentVersionDto } from '../dto/create-document-version.dto';
@@ -26,12 +30,17 @@ import { UpdateDocumentDto } from '../dto/update-document.dto';
 
 const MAX_FOLDER_DEPTH = 3;
 
+type MutableDocumentUpdate = {
+  currentVersionNumber?: number;
+};
+
 @Injectable()
 export class DocumentsService {
   constructor(
     @Inject(DOCUMENTS_REPOSITORY)
     private readonly documentsRepository: DocumentsRepositoryInterface,
     private readonly usersService: UsersService,
+    private readonly configService: ConfigService,
   ) {}
 
   async createDocumentFolder(dto: CreateDocumentFolderDto) {
@@ -40,13 +49,17 @@ export class DocumentsService {
   }
 
   findDocumentFolders(query: QueryDocumentFoldersDto) {
-    return this.documentsRepository.findDocumentFolders(query as Record<string, unknown>);
+    return this.documentsRepository.findDocumentFolders(
+      query as Record<string, unknown>,
+    );
   }
 
   async findDocumentFolder(id: string) {
     const entity = await this.documentsRepository.findDocumentFolderById(id);
     if (!entity) {
-      throw new NotFoundException(`Document folder with id "${id}" was not found.`);
+      throw new NotFoundException(
+        `Document folder with id "${id}" was not found.`,
+      );
     }
     return entity;
   }
@@ -57,7 +70,9 @@ export class DocumentsService {
 
     const updated = await this.documentsRepository.updateDocumentFolder(id, dto);
     if (!updated) {
-      throw new NotFoundException(`Document folder with id "${id}" was not found.`);
+      throw new NotFoundException(
+        `Document folder with id "${id}" was not found.`,
+      );
     }
     return updated;
   }
@@ -75,7 +90,9 @@ export class DocumentsService {
   }
 
   findDocuments(query: QueryDocumentsDto) {
-    return this.documentsRepository.findDocuments(query as Record<string, unknown>);
+    return this.documentsRepository.findDocuments(
+      query as Record<string, unknown>,
+    );
   }
 
   async findDocument(id: string) {
@@ -113,15 +130,18 @@ export class DocumentsService {
       await this.usersService.findOne(dto.uploadedByUserId);
     }
 
-    const latestVersion = await this.documentsRepository.findLatestDocumentVersion(
-      dto.documentId,
-    );
+    const latestVersion =
+      await this.documentsRepository.findLatestDocumentVersion(dto.documentId);
     const versionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
+
+    const relativeDirectory = path
+      .join('documents', dto.documentId)
+      .replace(/\\/g, '/');
     const relativeFilePath = path
-      .join(dto.documentId, file.filename)
+      .join(relativeDirectory, file.filename)
       .replace(/\\/g, '/');
 
-    return this.documentsRepository.createDocumentVersion({
+    const createdVersion = await this.documentsRepository.createDocumentVersion({
       documentId: dto.documentId,
       versionNumber,
       fileName: file.originalname,
@@ -131,16 +151,26 @@ export class DocumentsService {
       uploadedByUserId: dto.uploadedByUserId ?? null,
       comment: dto.comment ?? null,
     });
+
+    await this.documentsRepository.updateDocument(dto.documentId, {
+      currentVersionNumber: versionNumber,
+    } as MutableDocumentUpdate);
+
+    return createdVersion;
   }
 
   findDocumentVersions(query: QueryDocumentVersionsDto) {
-    return this.documentsRepository.findDocumentVersions(query as Record<string, unknown>);
+    return this.documentsRepository.findDocumentVersions(
+      query as Record<string, unknown>,
+    );
   }
 
   async findDocumentVersion(id: string) {
     const entity = await this.documentsRepository.findDocumentVersionById(id);
     if (!entity) {
-      throw new NotFoundException(`Document version with id "${id}" was not found.`);
+      throw new NotFoundException(
+        `Document version with id "${id}" was not found.`,
+      );
     }
     return entity;
   }
@@ -148,7 +178,9 @@ export class DocumentsService {
   async updateDocumentVersion(id: string, dto: UpdateDocumentVersionDto) {
     const updated = await this.documentsRepository.updateDocumentVersion(id, dto);
     if (!updated) {
-      throw new NotFoundException(`Document version with id "${id}" was not found.`);
+      throw new NotFoundException(
+        `Document version with id "${id}" was not found.`,
+      );
     }
     return updated;
   }
@@ -163,17 +195,36 @@ export class DocumentsService {
     const storageRoot = this.getDocumentsStorageRoot();
     const absoluteFilePath = path.resolve(storageRoot, documentVersion.filePath);
 
-    if (!absoluteFilePath.startsWith(path.resolve(storageRoot))) {
+    if (!absoluteFilePath.startsWith(storageRoot)) {
       throw new BadRequestException('Invalid stored file path.');
     }
 
-    if (!fs.existsSync(absoluteFilePath)) {
+    if (!existsSync(absoluteFilePath)) {
       throw new NotFoundException('Stored file was not found on disk.');
     }
 
     return {
       documentVersion,
-      file: new StreamableFile(fs.createReadStream(absoluteFilePath)),
+      file: new StreamableFile(createReadStream(absoluteFilePath)),
+    };
+  }
+
+  async getDocumentVersionAbsoluteFilePath(id: string) {
+    const documentVersion = await this.findDocumentVersion(id);
+    const storageRoot = this.getDocumentsStorageRoot();
+    const absolutePath = path.resolve(storageRoot, documentVersion.filePath);
+
+    if (!absolutePath.startsWith(storageRoot)) {
+      throw new BadRequestException('Invalid stored file path.');
+    }
+
+    if (!existsSync(absolutePath)) {
+      throw new NotFoundException('Stored file was not found on disk.');
+    }
+
+    return {
+      documentVersion,
+      absolutePath,
     };
   }
 
@@ -197,7 +248,9 @@ export class DocumentsService {
   }
 
   async findDocumentVersionComment(id: string) {
-    const entity = await this.documentsRepository.findDocumentVersionCommentById(id);
+    const entity = await this.documentsRepository.findDocumentVersionCommentById(
+      id,
+    );
     if (!entity) {
       throw new NotFoundException(
         `Document version comment with id "${id}" was not found.`,
@@ -225,6 +278,83 @@ export class DocumentsService {
   async removeDocumentVersionComment(id: string) {
     await this.findDocumentVersionComment(id);
     await this.documentsRepository.removeDocumentVersionComment(id);
+  }
+
+  async saveOnlyOfficeEditedVersion(
+    sourceVersionId: string,
+    downloadUrl: string,
+    fileType?: string,
+  ) {
+    const sourceVersion = await this.findDocumentVersion(sourceVersionId);
+    const document = await this.findDocument(sourceVersion.documentId);
+
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      throw new InternalServerErrorException(
+        `ONLYOFFICE file download failed with status ${response.status}.`,
+      );
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const latestVersion =
+      await this.documentsRepository.findLatestDocumentVersion(document.id);
+    const nextVersionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
+
+    const originalExt =
+      fileType?.replace('.', '') ||
+      path.extname(sourceVersion.fileName).replace('.', '') ||
+      'bin';
+
+    const safeFileNameBase = path
+      .basename(
+        document.title || sourceVersion.fileName,
+        path.extname(sourceVersion.fileName),
+      )
+      .replace(/[^\p{L}\p{N}\-_. ]/gu, '_');
+
+    const finalFileName = `${safeFileNameBase}.${originalExt}`;
+
+    const relativeDirectory = path
+      .join('documents', document.id)
+      .replace(/\\/g, '/');
+    const absoluteDirectory = path.resolve(
+      this.getDocumentsStorageRoot(),
+      relativeDirectory,
+    );
+
+    await fs.mkdir(absoluteDirectory, { recursive: true });
+
+    const storedFileName = `${Date.now()}-${randomUUID()}-${finalFileName}`;
+    const absoluteFilePath = path.join(absoluteDirectory, storedFileName);
+
+    await fs.writeFile(absoluteFilePath, buffer);
+
+    const relativeFilePath = path
+      .join(relativeDirectory, storedFileName)
+      .replace(/\\/g, '/');
+
+    const createdVersion = await this.documentsRepository.createDocumentVersion({
+      documentId: document.id,
+      versionNumber: nextVersionNumber,
+      fileName: finalFileName,
+      filePath: relativeFilePath,
+      mimeType: this.resolveMimeTypeFromExtension(
+        originalExt,
+        sourceVersion.mimeType,
+      ),
+      sizeBytes: buffer.byteLength,
+      uploadedByUserId:
+        sourceVersion.uploadedByUserId ?? document.createdByUserId ?? null,
+      comment: 'Saved from ONLYOFFICE',
+    });
+
+    await this.documentsRepository.updateDocument(document.id, {
+      currentVersionNumber: nextVersionNumber,
+    } as MutableDocumentUpdate);
+
+    return createdVersion;
   }
 
   private async validateFolderHierarchy(
@@ -256,10 +386,15 @@ export class DocumentsService {
     );
 
     if (!parentFolder) {
-      throw new BadRequestException('Invalid parentFolderId: parent folder was not found.');
+      throw new BadRequestException(
+        'Invalid parentFolderId: parent folder was not found.',
+      );
     }
 
-    const parentDepth = await this.getFolderDepth(dto.parentFolderId, currentFolderId);
+    const parentDepth = await this.getFolderDepth(
+      dto.parentFolderId,
+      currentFolderId,
+    );
     const subtreeHeight = currentFolderId
       ? await this.getFolderSubtreeHeight(currentFolderId)
       : 1;
@@ -285,9 +420,13 @@ export class DocumentsService {
       }
       visited.add(currentId);
 
-      const folder = await this.documentsRepository.findDocumentFolderById(currentId);
+      const folder = await this.documentsRepository.findDocumentFolderById(
+        currentId,
+      );
       if (!folder) {
-        throw new BadRequestException('Invalid parentFolderId: parent folder was not found.');
+        throw new BadRequestException(
+          'Invalid parentFolderId: parent folder was not found.',
+        );
       }
 
       const nextParentId = folder.parentFolderId;
@@ -315,14 +454,16 @@ export class DocumentsService {
     }
 
     const childHeights = await Promise.all(
-      childFolders.map((childFolder) => this.getFolderSubtreeHeight(childFolder.id)),
+      childFolders.map((childFolder) =>
+        this.getFolderSubtreeHeight(childFolder.id),
+      ),
     );
 
     return 1 + Math.max(...childHeights);
   }
 
   private getDocumentsStorageRoot(): string {
-    const storageRoot = process.env.DOCUMENTS_STORAGE_PATH;
+    const storageRoot = this.configService.get<string>('DOCUMENTS_STORAGE_PATH');
 
     if (!storageRoot) {
       throw new BadRequestException(
@@ -331,5 +472,27 @@ export class DocumentsService {
     }
 
     return path.resolve(storageRoot);
+  }
+
+  private resolveMimeTypeFromExtension(ext: string, fallback?: string): string {
+    const normalized = ext.toLowerCase();
+
+    const map: Record<string, string> = {
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      doc: 'application/msword',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      xls: 'application/vnd.ms-excel',
+      pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      ppt: 'application/vnd.ms-powerpoint',
+      pdf: 'application/pdf',
+      txt: 'text/plain',
+      csv: 'text/csv',
+      odt: 'application/vnd.oasis.opendocument.text',
+      ods: 'application/vnd.oasis.opendocument.spreadsheet',
+      odp: 'application/vnd.oasis.opendocument.presentation',
+      rtf: 'application/rtf',
+    };
+
+    return map[normalized] ?? fallback ?? 'application/octet-stream';
   }
 }

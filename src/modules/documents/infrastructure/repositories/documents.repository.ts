@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+
 import { QueryDocumentFoldersDto } from '../../application/dto/query-document-folders.dto';
 import { QueryDocumentVersionCommentsDto } from '../../application/dto/query-document-version-comments.dto';
 import { QueryDocumentVersionsDto } from '../../application/dto/query-document-versions.dto';
 import { QueryDocumentsDto } from '../../application/dto/query-documents.dto';
 import { DocumentsRepositoryInterface } from '../../domain/interfaces/documents.repository.interface';
+
 import { DocumentFolderOrmEntity } from '../persistence/document-folder.orm-entity';
-import { DocumentVersionCommentOrmEntity } from '../persistence/document-version-comment.orm-entity';
 import { DocumentOrmEntity } from '../persistence/document.orm-entity';
+import { DocumentVersionCommentOrmEntity } from '../persistence/document-version-comment.orm-entity';
 import { DocumentVersionOrmEntity } from '../persistence/document-version.orm-entity';
 
 @Injectable()
@@ -31,20 +33,41 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
   }
 
   findDocumentFolders(filters?: QueryDocumentFoldersDto) {
-    return this.documentFoldersRepository.find({
-      where: {
-        projectId: filters?.projectId,
-        parentFolderId: filters?.parentFolderId,
-        type: filters?.type,
-      },
-      relations: {
-        project: true,
-        parentFolder: true,
-        childFolders: true,
-        documents: true,
-      },
-      order: { createdAt: 'DESC' },
-    });
+    const queryBuilder = this.documentFoldersRepository
+      .createQueryBuilder('documentFolder')
+      .leftJoinAndSelect('documentFolder.project', 'project')
+      .leftJoinAndSelect('documentFolder.parentFolder', 'parentFolder')
+      .leftJoinAndSelect('documentFolder.childFolders', 'childFolders')
+      .leftJoinAndSelect('documentFolder.documents', 'documents')
+      .orderBy('documentFolder.createdAt', 'DESC');
+
+    if (filters?.projectId !== undefined) {
+      if (filters.projectId === null) {
+        queryBuilder.andWhere('documentFolder.projectId IS NULL');
+      } else {
+        queryBuilder.andWhere('documentFolder.projectId = :projectId', {
+          projectId: filters.projectId,
+        });
+      }
+    }
+
+    if (filters?.parentFolderId !== undefined) {
+      if (filters.parentFolderId === null) {
+        queryBuilder.andWhere('documentFolder.parentFolderId IS NULL');
+      } else {
+        queryBuilder.andWhere('documentFolder.parentFolderId = :parentFolderId', {
+          parentFolderId: filters.parentFolderId,
+        });
+      }
+    }
+
+    if (filters?.type) {
+      queryBuilder.andWhere('documentFolder.type = :type', {
+        type: filters.type,
+      });
+    }
+
+    return queryBuilder.getMany();
   }
 
   findDocumentFolderById(id: string) {
@@ -67,6 +90,7 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
     if (!existing) {
       return null;
     }
+
     Object.assign(existing, payload);
     return this.documentFoldersRepository.save(existing);
   }
@@ -80,20 +104,41 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
   }
 
   findDocuments(filters?: QueryDocumentsDto) {
-    return this.documentsRepository.find({
-      where: {
-        projectId: filters?.projectId,
-        folderId: filters?.folderId,
-        documentType: filters?.documentType,
-      },
-      relations: {
-        project: true,
-        folder: true,
-        createdByUser: true,
-        versions: true,
-      },
-      order: { createdAt: 'DESC' },
-    });
+    const queryBuilder = this.documentsRepository
+      .createQueryBuilder('document')
+      .leftJoinAndSelect('document.project', 'project')
+      .leftJoinAndSelect('document.folder', 'folder')
+      .leftJoinAndSelect('document.createdByUser', 'createdByUser')
+      .leftJoinAndSelect('document.versions', 'versions')
+      .orderBy('document.createdAt', 'DESC');
+
+    if (filters?.projectId !== undefined) {
+      if (filters.projectId === null) {
+        queryBuilder.andWhere('document.projectId IS NULL');
+      } else {
+        queryBuilder.andWhere('document.projectId = :projectId', {
+          projectId: filters.projectId,
+        });
+      }
+    }
+
+    if (filters?.folderId !== undefined) {
+      if (filters.folderId === null) {
+        queryBuilder.andWhere('document.folderId IS NULL');
+      } else {
+        queryBuilder.andWhere('document.folderId = :folderId', {
+          folderId: filters.folderId,
+        });
+      }
+    }
+
+    if (filters?.documentType) {
+      queryBuilder.andWhere('document.documentType = :documentType', {
+        documentType: filters.documentType,
+      });
+    }
+
+    return queryBuilder.getMany();
   }
 
   findDocumentById(id: string) {
@@ -113,6 +158,7 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
     if (!existing) {
       return null;
     }
+
     Object.assign(existing, payload);
     return this.documentsRepository.save(existing);
   }
@@ -169,6 +215,7 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
     if (!existing) {
       return null;
     }
+
     Object.assign(existing, payload);
     return this.documentVersionsRepository.save(existing);
   }
@@ -184,17 +231,26 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
   }
 
   findDocumentVersionComments(filters?: QueryDocumentVersionCommentsDto) {
-    return this.documentVersionCommentsRepository.find({
-      where: {
-        documentVersionId: filters?.documentVersionId,
-        authorUserId: filters?.authorUserId,
-      },
-      relations: {
-        documentVersion: true,
-        authorUser: true,
-      },
-      order: { createdAt: 'ASC' },
-    });
+    const queryBuilder = this.documentVersionCommentsRepository
+      .createQueryBuilder('documentVersionComment')
+      .leftJoinAndSelect('documentVersionComment.documentVersion', 'documentVersion')
+      .leftJoinAndSelect('documentVersionComment.authorUser', 'authorUser')
+      .orderBy('documentVersionComment.createdAt', 'ASC');
+
+    if (filters?.documentVersionId) {
+      queryBuilder.andWhere(
+        'documentVersionComment.documentVersionId = :documentVersionId',
+        { documentVersionId: filters.documentVersionId },
+      );
+    }
+
+    if (filters?.authorUserId) {
+      queryBuilder.andWhere('documentVersionComment.authorUserId = :authorUserId', {
+        authorUserId: filters.authorUserId,
+      });
+    }
+
+    return queryBuilder.getMany();
   }
 
   findDocumentVersionCommentById(id: string) {
@@ -215,6 +271,7 @@ export class DocumentsRepository implements DocumentsRepositoryInterface {
     if (!existing) {
       return null;
     }
+
     Object.assign(existing, payload);
     return this.documentVersionCommentsRepository.save(existing);
   }
