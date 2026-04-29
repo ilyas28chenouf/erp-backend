@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Res } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { DocumentsService } from '../application/services/documents.service';
@@ -25,5 +25,14 @@ export class DocumentVersionOnlyOfficeController {
     );
 
     return file;
+  }
+
+  @Post('callback/:versionId')
+  @ApiOperation({ summary: 'ONLYOFFICE callback' })
+  callback(@Param('versionId') versionId: string, @Body() body: any) {
+    console.log('ONLYOFFICE callback version:', versionId);
+    console.log('ONLYOFFICE callback body:', body);
+
+    return { error: 0 };
   }
 }
