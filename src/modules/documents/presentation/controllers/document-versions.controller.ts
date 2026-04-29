@@ -136,25 +136,7 @@ export class DocumentVersionsController {
     return file;
   }
 
- @UseGuards()
-  @Get(':id/file-onlyoffice')
-  @ApiOperation({ summary: 'Download document version file for ONLYOFFICE' })
-  @ApiResponse({ status: 200, description: 'Document version file returned.' })
-  async getFileForOnlyOffice(
-    @Param('id') id: string,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const { documentVersion, file } =
-      await this.documentsService.getDocumentVersionFile(id);
 
-    res.setHeader('Content-Type', documentVersion.mimeType);
-    res.setHeader(
-      'Content-Disposition',
-      `inline; filename="${encodeURIComponent(documentVersion.fileName)}"`,
-    );
-
-    return file;
-  }
   @Get(':id')
   @ApiOperation({ summary: 'Get document version by id' })
   @ApiResponse({ status: 200, description: 'Document version returned.' })

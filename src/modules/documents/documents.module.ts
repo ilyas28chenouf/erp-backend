@@ -12,7 +12,7 @@ import { DocumentFoldersController } from './presentation/controllers/document-f
 import { DocumentVersionCommentsController } from './presentation/controllers/document-version-comments.controller';
 import { DocumentsController } from './presentation/controllers/documents.controller';
 import { DocumentVersionsController } from './presentation/controllers/document-versions.controller';
-
+import { DocumentVersionOnlyOfficeController } from './presentation/document-version-onlyoffice.controller';
 @Module({
   imports: [
     UsersModule,
@@ -27,6 +27,7 @@ import { DocumentVersionsController } from './presentation/controllers/document-
     DocumentFoldersController,
     DocumentVersionsController,
     DocumentVersionCommentsController,
+    DocumentVersionOnlyOfficeController,
     DocumentsController,
   ],
   providers: [
