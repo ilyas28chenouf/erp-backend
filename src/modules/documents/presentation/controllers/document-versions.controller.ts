@@ -136,6 +136,7 @@ export class DocumentVersionsController {
     return file;
   }
 
+ @UseGuards()
   @Get(':id/file-onlyoffice')
   @ApiOperation({ summary: 'Download document version file for ONLYOFFICE' })
   @ApiResponse({ status: 200, description: 'Document version file returned.' })
