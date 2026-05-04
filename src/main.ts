@@ -1,7 +1,4 @@
-import {
-  ClassSerializerInterceptor,
-  ValidationPipe,
-} from '@nestjs/common';
+import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
@@ -17,6 +14,9 @@ async function bootstrap() {
       'http://127.0.0.1:5173',
       'http://192.168.0.220',
       'http://localhost:1420',
+
+      'http://erp.mekexpert.ru',
+      'https://erp.mekexpert.ru',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
@@ -31,9 +31,7 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalInterceptors(
-    new ClassSerializerInterceptor(app.get(Reflector)),
-  );
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('ERP API')
