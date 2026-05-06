@@ -68,7 +68,15 @@ export class DocumentVersionsController {
           }
         },
         filename: (req, file, callback) => {
-          const safeOriginalName = file.originalname.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
+          const decodedOriginalName = Buffer.from(
+            file.originalname,
+            'latin1',
+          ).toString('utf8');
+
+          const safeOriginalName = decodedOriginalName.replace(
+            /[<>:"/\\|?*\x00-\x1F]/g,
+            '_',
+          );
           callback(null, `${Date.now()}-${safeOriginalName}`);
         },
       }),
@@ -122,10 +130,12 @@ export class DocumentVersionsController {
   @Get(':id/file')
   @ApiOperation({ summary: 'Download document version file' })
   @ApiResponse({ status: 200, description: 'Document version file returned.' })
-  async getFile(@Param('id') id: string, @Res({ passthrough: true }) res: Response) {
-    const { documentVersion, file } = await this.documentsService.getDocumentVersionFile(
-      id,
-    );
+  async getFile(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { documentVersion, file } =
+      await this.documentsService.getDocumentVersionFile(id);
 
     res.setHeader('Content-Type', documentVersion.mimeType);
     res.setHeader(
@@ -135,7 +145,6 @@ export class DocumentVersionsController {
 
     return file;
   }
-
 
   @Get(':id')
   @ApiOperation({ summary: 'Get document version by id' })
