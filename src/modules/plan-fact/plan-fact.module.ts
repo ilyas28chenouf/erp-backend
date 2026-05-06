@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { DocumentsModule } from '../documents/documents.module';
 import { PLAN_FACT_REPOSITORY } from './domain/interfaces/plan-fact.repository.interface';
 import { PlanFactService } from './application/services/plan-fact.service';
 import { PlanFactEntryOrmEntity } from './infrastructure/persistence/plan-fact-entry.orm-entity';
@@ -13,6 +14,7 @@ import { WorkOrdersController } from './presentation/controllers/work-orders.con
 
 @Module({
   imports: [
+    DocumentsModule,
     TypeOrmModule.forFeature([
       ServiceLineOrmEntity,
       WorkOrderOrmEntity,

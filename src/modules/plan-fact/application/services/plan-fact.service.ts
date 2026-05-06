@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { DocumentsService } from '../../../documents/application/services/documents.service';
 import { PLAN_FACT_REPOSITORY } from '../../domain/interfaces/plan-fact.repository.interface';
 import type { PlanFactRepositoryInterface } from '../../domain/interfaces/plan-fact.repository.interface';
 import { CreatePlanFactEntryDto } from '../dto/create-plan-fact-entry.dto';
@@ -17,6 +18,7 @@ export class PlanFactService {
   constructor(
     @Inject(PLAN_FACT_REPOSITORY)
     private readonly planFactRepository: PlanFactRepositoryInterface,
+    private readonly documentsService: DocumentsService,
   ) {}
 
   createServiceLine(dto: CreateServiceLineDto) {
@@ -72,7 +74,11 @@ export class PlanFactService {
     await this.planFactRepository.removeWorkOrder(id);
   }
 
-  createPlanFactEntry(dto: CreatePlanFactEntryDto) {
+  async createPlanFactEntry(dto: CreatePlanFactEntryDto) {
+    if (dto.documentId) {
+      await this.documentsService.findDocument(dto.documentId);
+    }
+
     return this.planFactRepository.createPlanFactEntry({
       ...dto,
       naradPlan: dto.naradPlan ?? '0.00',
@@ -93,6 +99,10 @@ export class PlanFactService {
   }
 
   async updatePlanFactEntry(id: string, dto: UpdatePlanFactEntryDto) {
+    if (dto.documentId) {
+      await this.documentsService.findDocument(dto.documentId);
+    }
+
     const updated = await this.planFactRepository.updatePlanFactEntry(id, dto);
     if (!updated) throw new NotFoundException(`Plan/fact entry with id "${id}" was not found.`);
     return updated;

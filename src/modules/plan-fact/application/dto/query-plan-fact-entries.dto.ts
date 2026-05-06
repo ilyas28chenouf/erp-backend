@@ -11,6 +11,11 @@ export class QueryPlanFactEntriesDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
+  documentId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
   workOrderId?: string;
 
   @ApiPropertyOptional()

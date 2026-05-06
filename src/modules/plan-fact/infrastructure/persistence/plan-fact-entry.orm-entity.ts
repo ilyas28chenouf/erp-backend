@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { BaseUuidEntity } from '../../../../common/base.entity';
+import { DocumentOrmEntity } from '../../../documents/infrastructure/persistence/document.orm-entity';
 import { ServiceLineOrmEntity } from './service-line.orm-entity';
 import { WorkOrderOrmEntity } from './work-order.orm-entity';
 
@@ -9,6 +10,10 @@ export class PlanFactEntryOrmEntity extends BaseUuidEntity {
   @ApiProperty()
   @Column({ type: 'uuid' })
   serviceLineId: string;
+
+  @ApiProperty({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  documentId?: string | null;
 
   @ApiProperty({ nullable: true })
   @Column({ type: 'uuid', nullable: true })
@@ -51,6 +56,13 @@ export class PlanFactEntryOrmEntity extends BaseUuidEntity {
   })
   @JoinColumn({ name: 'serviceLineId' })
   serviceLine: ServiceLineOrmEntity;
+
+  @ManyToOne(() => DocumentOrmEntity, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'documentId' })
+  document?: DocumentOrmEntity | null;
 
   @ManyToOne(() => WorkOrderOrmEntity, (workOrder) => workOrder.planFactEntries, {
     nullable: true,

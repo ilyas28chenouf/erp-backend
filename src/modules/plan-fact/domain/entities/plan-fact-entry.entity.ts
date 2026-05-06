@@ -1,6 +1,7 @@
 export class PlanFactEntry {
   id: string;
   serviceLineId: string;
+  documentId?: string | null;
   workOrderId?: string | null;
   year: number;
   month: number;

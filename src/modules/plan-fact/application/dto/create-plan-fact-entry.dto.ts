@@ -9,6 +9,11 @@ export class CreatePlanFactEntryDto {
   @ApiProperty({ required: false, nullable: true })
   @IsOptional()
   @IsUUID()
+  documentId?: string | null;
+
+  @ApiProperty({ required: false, nullable: true })
+  @IsOptional()
+  @IsUUID()
   workOrderId?: string | null;
 
   @ApiProperty()

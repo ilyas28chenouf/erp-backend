@@ -10,10 +10,13 @@ import { ConfigService } from '@nestjs/config';
 import { createReadStream, existsSync, promises as fs } from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
+import { DataSource } from 'typeorm';
 
 import { UsersService } from '../../../users/application/services/users.service';
 import { DOCUMENTS_REPOSITORY } from '../../domain/interfaces/documents.repository.interface';
 import type { DocumentsRepositoryInterface } from '../../domain/interfaces/documents.repository.interface';
+import { DocumentOrmEntity } from '../../infrastructure/persistence/document.orm-entity';
+import { DocumentVersionOrmEntity } from '../../infrastructure/persistence/document-version.orm-entity';
 
 import { CreateDocumentFolderDto } from '../dto/create-document-folder.dto';
 import { CreateDocumentVersionCommentDto } from '../dto/create-document-version-comment.dto';
@@ -27,11 +30,24 @@ import { UpdateDocumentFolderDto } from '../dto/update-document-folder.dto';
 import { UpdateDocumentVersionCommentDto } from '../dto/update-document-version-comment.dto';
 import { UpdateDocumentVersionDto } from '../dto/update-document-version.dto';
 import { UpdateDocumentDto } from '../dto/update-document.dto';
+import { UploadManyDocumentsDto } from '../dto/upload-many-documents.dto';
+import { DocumentType } from '../../domain/enums/document-type.enum';
 
 const MAX_FOLDER_DEPTH = 3;
 
 type MutableDocumentUpdate = {
   currentVersionNumber?: number;
+};
+
+type PreparedUploadFile = {
+  originalName: string;
+  storedFileName: string;
+  temporaryAbsolutePath: string;
+  finalAbsolutePath: string;
+  relativeFilePath: string;
+  mimeType: string;
+  sizeBytes: number;
+  documentId: string;
 };
 
 @Injectable()
@@ -41,6 +57,7 @@ export class DocumentsService {
     private readonly documentsRepository: DocumentsRepositoryInterface,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createDocumentFolder(dto: CreateDocumentFolderDto) {
@@ -87,6 +104,91 @@ export class DocumentsService {
       ...dto,
       currentVersionNumber: dto.currentVersionNumber ?? 1,
     });
+  }
+
+  async createDocumentsFromFiles(
+    dto: UploadManyDocumentsDto,
+    files: Express.Multer.File[],
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('At least one file is required.');
+    }
+
+    if (dto.folderId) {
+      await this.findDocumentFolder(dto.folderId);
+    }
+
+    if (dto.createdByUserId) {
+      await this.usersService.findOne(dto.createdByUserId);
+    }
+
+    const storageRoot = this.getDocumentsStorageRoot();
+    const preparedFiles = files.map((file) =>
+      this.prepareUploadFile(file, storageRoot),
+    );
+    const movedFiles: string[] = [];
+
+    try {
+      for (const preparedFile of preparedFiles) {
+        await fs.mkdir(path.dirname(preparedFile.finalAbsolutePath), {
+          recursive: true,
+        });
+        await fs.rename(
+          preparedFile.temporaryAbsolutePath,
+          preparedFile.finalAbsolutePath,
+        );
+        movedFiles.push(preparedFile.finalAbsolutePath);
+      }
+
+      const createdDocumentIds = await this.dataSource.transaction(async (manager) => {
+        const documentIds: string[] = [];
+
+        for (const preparedFile of preparedFiles) {
+          const document = manager.create(DocumentOrmEntity, {
+            id: preparedFile.documentId,
+            projectId: dto.projectId ?? null,
+            folderId: dto.folderId ?? null,
+            title: preparedFile.originalName,
+            documentType: dto.documentType ?? DocumentType.OTHER,
+            currentVersionNumber: 1,
+            createdByUserId: dto.createdByUserId ?? null,
+          });
+
+          await manager.save(DocumentOrmEntity, document);
+
+          const version = manager.create(DocumentVersionOrmEntity, {
+            documentId: document.id,
+            versionNumber: 1,
+            fileName: preparedFile.originalName,
+            filePath: preparedFile.relativeFilePath,
+            mimeType: preparedFile.mimeType,
+            sizeBytes: preparedFile.sizeBytes,
+            uploadedByUserId: dto.createdByUserId ?? null,
+            comment: dto.comment ?? null,
+          });
+
+          await manager.save(DocumentVersionOrmEntity, version);
+          documentIds.push(document.id);
+        }
+
+        return documentIds;
+      });
+
+      const createdDocuments = await Promise.all(
+        createdDocumentIds.map((documentId) => this.findDocument(documentId)),
+      );
+
+      return createdDocuments;
+    } catch (error) {
+      await Promise.all(
+        preparedFiles.map(async (preparedFile) => {
+          await this.safeDeleteFile(preparedFile.finalAbsolutePath);
+          await this.safeDeleteFile(preparedFile.temporaryAbsolutePath);
+        }),
+      );
+
+      throw error;
+    }
   }
 
   findDocuments(query: QueryDocumentsDto) {
@@ -450,6 +552,44 @@ async saveOnlyOfficeEditedVersion(
     }
 
     return path.resolve(storageRoot);
+  }
+
+  private prepareUploadFile(
+    file: Express.Multer.File,
+    storageRoot: string,
+  ): PreparedUploadFile {
+    const documentId = randomUUID();
+    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    const storedFileName = `${Date.now()}-${this.sanitizeFileName(originalName)}`;
+    const relativeFilePath = path.join(documentId, storedFileName).replace(/\\/g, '/');
+    const finalAbsolutePath = path.resolve(storageRoot, relativeFilePath);
+
+    if (!finalAbsolutePath.startsWith(storageRoot)) {
+      throw new BadRequestException('Invalid generated storage path.');
+    }
+
+    return {
+      documentId,
+      originalName,
+      storedFileName,
+      temporaryAbsolutePath: file.path,
+      finalAbsolutePath,
+      relativeFilePath,
+      mimeType: file.mimetype,
+      sizeBytes: file.size,
+    };
+  }
+
+  private sanitizeFileName(fileName: string): string {
+    return fileName.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
+  }
+
+  private async safeDeleteFile(filePath: string): Promise<void> {
+    try {
+      await fs.unlink(filePath);
+    } catch {
+      // Ignore cleanup failures for missing files.
+    }
   }
 
   private resolveMimeTypeFromExtension(ext: string, fallback?: string): string {

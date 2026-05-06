@@ -97,12 +97,14 @@ export class PlanFactRepository implements PlanFactRepositoryInterface {
     const qb = this.planFactEntriesRepository
       .createQueryBuilder('entry')
       .leftJoinAndSelect('entry.serviceLine', 'serviceLine')
+      .leftJoinAndSelect('entry.document', 'document')
       .leftJoinAndSelect('entry.workOrder', 'workOrder')
       .leftJoinAndSelect('serviceLine.customer', 'customer')
       .leftJoinAndSelect('serviceLine.project', 'project')
       .orderBy('entry.createdAt', 'DESC');
 
     if (filters?.serviceLineId) qb.andWhere('entry.serviceLineId = :serviceLineId', { serviceLineId: filters.serviceLineId });
+    if (filters?.documentId) qb.andWhere('entry.documentId = :documentId', { documentId: filters.documentId });
     if (filters?.workOrderId) qb.andWhere('entry.workOrderId = :workOrderId', { workOrderId: filters.workOrderId });
     if (filters?.customerId) qb.andWhere('serviceLine.customerId = :customerId', { customerId: filters.customerId });
     if (filters?.projectId) qb.andWhere('serviceLine.projectId = :projectId', { projectId: filters.projectId });
@@ -115,7 +117,7 @@ export class PlanFactRepository implements PlanFactRepositoryInterface {
   findPlanFactEntryById(id: string) {
     return this.planFactEntriesRepository.findOne({
       where: { id },
-      relations: { serviceLine: { customer: true, project: true }, workOrder: true },
+      relations: { serviceLine: { customer: true, project: true }, document: true, workOrder: true },
     });
   }
 
