@@ -4,6 +4,8 @@ import { AuditLogOrmEntity } from '../audit/infrastructure/persistence/audit-log
 import { DocumentOrmEntity } from '../documents/infrastructure/persistence/document.orm-entity';
 import { BudgetPlanOrmEntity } from '../finance/infrastructure/persistence/budget-plan.orm-entity';
 import { PaymentRegistryEntryOrmEntity } from '../finance/infrastructure/persistence/payment-registry-entry.orm-entity';
+import { PlanFactEntryOrmEntity } from '../plan-fact/infrastructure/persistence/plan-fact-entry.orm-entity';
+import { ServiceLineOrmEntity } from '../plan-fact/infrastructure/persistence/service-line.orm-entity';
 import { ProjectOrmEntity } from '../projects/infrastructure/persistence/project.orm-entity';
 import { TaskOrmEntity } from '../tasks/infrastructure/persistence/task.orm-entity';
 import { UserOrmEntity } from '../users/infrastructure/persistence/user.orm-entity';
@@ -20,6 +22,8 @@ import { ReportsController } from './presentation/controllers/reports.controller
       PaymentRegistryEntryOrmEntity,
       BudgetPlanOrmEntity,
       AuditLogOrmEntity,
+      ServiceLineOrmEntity,
+      PlanFactEntryOrmEntity,
     ]),
   ],
   controllers: [ReportsController],
