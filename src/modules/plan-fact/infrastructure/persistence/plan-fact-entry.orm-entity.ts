@@ -17,6 +17,18 @@ export class PlanFactEntryOrmEntity extends BaseUuidEntity {
 
   @ApiProperty({ nullable: true })
   @Column({ type: 'uuid', nullable: true })
+  documentActId?: string | null;
+
+  @ApiProperty({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  documentNaradId?: string | null;
+
+  @ApiProperty({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
+  documentOtherId?: string | null;
+
+  @ApiProperty({ nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   workOrderId?: string | null;
 
   @ApiProperty()
@@ -63,6 +75,27 @@ export class PlanFactEntryOrmEntity extends BaseUuidEntity {
   })
   @JoinColumn({ name: 'documentId' })
   document?: DocumentOrmEntity | null;
+
+  @ManyToOne(() => DocumentOrmEntity, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'documentActId' })
+  documentAct?: DocumentOrmEntity | null;
+
+  @ManyToOne(() => DocumentOrmEntity, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'documentNaradId' })
+  documentNarad?: DocumentOrmEntity | null;
+
+  @ManyToOne(() => DocumentOrmEntity, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'documentOtherId' })
+  documentOther?: DocumentOrmEntity | null;
 
   @ManyToOne(() => WorkOrderOrmEntity, (workOrder) => workOrder.planFactEntries, {
     nullable: true,

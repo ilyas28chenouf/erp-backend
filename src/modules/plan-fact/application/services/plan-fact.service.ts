@@ -75,9 +75,7 @@ export class PlanFactService {
   }
 
   async createPlanFactEntry(dto: CreatePlanFactEntryDto) {
-    if (dto.documentId) {
-      await this.documentsService.findDocument(dto.documentId);
-    }
+    await this.validateAttachedDocuments(dto);
 
     return this.planFactRepository.createPlanFactEntry({
       ...dto,
@@ -99,9 +97,7 @@ export class PlanFactService {
   }
 
   async updatePlanFactEntry(id: string, dto: UpdatePlanFactEntryDto) {
-    if (dto.documentId) {
-      await this.documentsService.findDocument(dto.documentId);
-    }
+    await this.validateAttachedDocuments(dto);
 
     const updated = await this.planFactRepository.updatePlanFactEntry(id, dto);
     if (!updated) throw new NotFoundException(`Plan/fact entry with id "${id}" was not found.`);
@@ -116,6 +112,24 @@ export class PlanFactService {
   getDashboardSummary(query: QueryDashboardSummaryDto) {
     return this.planFactRepository.getDashboardSummary(
       query as Record<string, unknown>,
+    );
+  }
+
+  private async validateAttachedDocuments(
+    dto: Pick<
+      CreatePlanFactEntryDto,
+      'documentId' | 'documentActId' | 'documentNaradId' | 'documentOtherId'
+    >,
+  ) {
+    const documentIds = [
+      dto.documentId,
+      dto.documentActId,
+      dto.documentNaradId,
+      dto.documentOtherId,
+    ].filter((documentId): documentId is string => Boolean(documentId));
+
+    await Promise.all(
+      documentIds.map((documentId) => this.documentsService.findDocument(documentId)),
     );
   }
 }

@@ -2,16 +2,31 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, IsNumberString, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 export class CreatePlanFactEntryDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'uuid' })
   @IsUUID()
   serviceLineId: string;
 
-  @ApiProperty({ required: false, nullable: true })
+  @ApiProperty({ required: false, nullable: true, example: null })
   @IsOptional()
   @IsUUID()
   documentId?: string | null;
 
-  @ApiProperty({ required: false, nullable: true })
+  @ApiProperty({ required: false, nullable: true, example: null })
+  @IsOptional()
+  @IsUUID()
+  documentActId?: string | null;
+
+  @ApiProperty({ required: false, nullable: true, example: null })
+  @IsOptional()
+  @IsUUID()
+  documentNaradId?: string | null;
+
+  @ApiProperty({ required: false, nullable: true, example: null })
+  @IsOptional()
+  @IsUUID()
+  documentOtherId?: string | null;
+
+  @ApiProperty({ required: false, nullable: true, example: null })
   @IsOptional()
   @IsUUID()
   workOrderId?: string | null;

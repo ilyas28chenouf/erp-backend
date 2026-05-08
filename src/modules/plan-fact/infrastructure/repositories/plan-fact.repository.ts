@@ -98,6 +98,9 @@ export class PlanFactRepository implements PlanFactRepositoryInterface {
       .createQueryBuilder('entry')
       .leftJoinAndSelect('entry.serviceLine', 'serviceLine')
       .leftJoinAndSelect('entry.document', 'document')
+      .leftJoinAndSelect('entry.documentAct', 'documentAct')
+      .leftJoinAndSelect('entry.documentNarad', 'documentNarad')
+      .leftJoinAndSelect('entry.documentOther', 'documentOther')
       .leftJoinAndSelect('entry.workOrder', 'workOrder')
       .leftJoinAndSelect('serviceLine.customer', 'customer')
       .leftJoinAndSelect('serviceLine.project', 'project')
@@ -117,7 +120,14 @@ export class PlanFactRepository implements PlanFactRepositoryInterface {
   findPlanFactEntryById(id: string) {
     return this.planFactEntriesRepository.findOne({
       where: { id },
-      relations: { serviceLine: { customer: true, project: true }, document: true, workOrder: true },
+      relations: {
+        serviceLine: { customer: true, project: true },
+        document: true,
+        documentAct: true,
+        documentNarad: true,
+        documentOther: true,
+        workOrder: true,
+      },
     });
   }
 
