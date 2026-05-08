@@ -211,27 +211,27 @@ export class ReportsService {
 
     const worksheet = workbook.addWorksheet('Plan Fact');
     worksheet.columns = [
-      { header: 'Week', key: 'week', width: 28 },
-      { header: 'Narad plan', key: 'naradPlan', width: 16 },
-      { header: 'Narad fact', key: 'naradFact', width: 16 },
-      { header: 'Advance plan', key: 'advancePlan', width: 16 },
-      { header: 'Advance fact', key: 'advanceFact', width: 16 },
-      { header: 'Documents', key: 'documents', width: 36 },
-      { header: 'Comment', key: 'comment', width: 48 },
+      { header: 'Неделя', key: 'week', width: 28 },
+      { header: 'Наряд-заказ план', key: 'naradPlan', width: 16 },
+      { header: 'Наряд-заказ факт', key: 'naradFact', width: 16 },
+      { header: 'Аванс план', key: 'advancePlan', width: 16 },
+      { header: 'Аванс факт', key: 'advanceFact', width: 16 },
+      { header: 'Документы', key: 'documents', width: 36 },
+      { header: 'Комментарий', key: 'comment', width: 48 },
     ];
 
     worksheet.mergeCells('A1:G1');
-    worksheet.getCell('A1').value = 'Monthly Weekly Plan/Fact Table';
+    worksheet.getCell('A1').value = 'Таблица план/факт по неделям';
     worksheet.getCell('A1').font = { bold: true, size: 16 };
     worksheet.getCell('A1').alignment = { horizontal: 'center' };
 
-    worksheet.getCell('A3').value = 'Customer';
+    worksheet.getCell('A3').value = 'Заказчик';
     worksheet.getCell('B3').value = report.customerName ?? '-';
-    worksheet.getCell('A4').value = 'Service line';
+    worksheet.getCell('A4').value = 'Договор / направление работ';
     worksheet.getCell('B4').value = report.serviceLineTitle;
-    worksheet.getCell('A5').value = 'Project';
+    worksheet.getCell('A5').value = 'Проект';
     worksheet.getCell('B5').value = report.projectName ?? '-';
-    worksheet.getCell('A6').value = 'Generated at';
+    worksheet.getCell('A6').value = 'Сформировано';
     worksheet.getCell('B6').value = report.generatedAt;
 
     for (const cellAddress of ['A3', 'A4', 'A5', 'A6']) {
@@ -254,13 +254,13 @@ export class ReportsService {
 
       const headerRow = worksheet.getRow(currentRowIndex);
       headerRow.values = [
-        'Week',
-        'Narad plan',
-        'Narad fact',
-        'Advance plan',
-        'Advance fact',
-        'Documents',
-        'Comment',
+        'Неделя',
+        'Наряд-заказ план',
+        'Наряд-заказ факт',
+        'Аванс план',
+        'Аванс факт',
+        'Документы',
+        'Комментарий',
       ];
       headerRow.font = { bold: true };
       headerRow.fill = {
@@ -285,7 +285,7 @@ export class ReportsService {
 
       const totalsRow = worksheet.getRow(currentRowIndex);
       totalsRow.values = [
-        `Totals for ${monthSection.label}`,
+        `Итого за ${monthSection.label}`,
         this.toExcelNumber(monthSection.totals.naradPlan),
         this.toExcelNumber(monthSection.totals.naradFact),
         this.toExcelNumber(monthSection.totals.advancePlan),
@@ -303,7 +303,7 @@ export class ReportsService {
     }
 
     worksheet.mergeCells(`A${currentRowIndex}:G${currentRowIndex}`);
-    worksheet.getCell(`A${currentRowIndex}`).value = 'Overall Totals';
+    worksheet.getCell(`A${currentRowIndex}`).value = 'Общие итоги';
     worksheet.getCell(`A${currentRowIndex}`).font = { bold: true, size: 13 };
     worksheet.getCell(`A${currentRowIndex}`).fill = {
       type: 'pattern',
@@ -314,10 +314,10 @@ export class ReportsService {
 
     const overallHeaderRow = worksheet.getRow(currentRowIndex);
     overallHeaderRow.values = [
-      'Narad plan',
-      'Narad fact',
-      'Advance plan',
-      'Advance fact',
+      'Наряд-заказ план',
+      'Наряд-заказ факт',
+      'Аванс план',
+      'Аванс факт',
     ];
     overallHeaderRow.font = { bold: true };
     currentRowIndex += 1;
@@ -338,7 +338,12 @@ export class ReportsService {
           right: { style: 'thin', color: { argb: 'FFD9D9D9' } },
         };
 
-        if (rowNumber >= 9 && rowNumber <= worksheet.rowCount && columnNumber >= 2 && columnNumber <= 5) {
+        if (
+          rowNumber >= 9 &&
+          rowNumber <= worksheet.rowCount &&
+          columnNumber >= 2 &&
+          columnNumber <= 5
+        ) {
           cell.numFmt = '#,##0.00';
         }
       });
@@ -377,11 +382,11 @@ export class ReportsService {
   private formatMonthLabel(year: number, month: number) {
     const date = new Date(Date.UTC(year, month - 1, 1));
 
-    return date.toLocaleDateString('ru-RU', {
+    return `${date.toLocaleDateString('ru-RU', {
       month: 'long',
       year: 'numeric',
       timeZone: 'UTC',
-    });
+    })} г.`;
   }
 
   private getWeekSortValue(weekLabel?: string | null) {
@@ -411,7 +416,9 @@ export class ReportsService {
   private toMinorUnits(value: string) {
     const normalized = value.replace(',', '.').trim();
     const negative = normalized.startsWith('-');
-    const [wholePartRaw, fractionPartRaw = ''] = normalized.replace('-', '').split('.');
+    const [wholePartRaw, fractionPartRaw = ''] = normalized
+      .replace('-', '')
+      .split('.');
     const wholePart = Number.parseInt(wholePartRaw || '0', 10);
     const fractionPart = Number.parseInt(
       `${fractionPartRaw}00`.slice(0, 2),
