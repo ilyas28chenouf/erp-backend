@@ -32,18 +32,20 @@ export class ReportsController {
   @ApiResponse({ status: 200, description: 'Excel report file returned.' })
   async exportPlanFactServiceLineExcel(
     @Param('serviceLineId') serviceLineId: string,
-    @Res({ passthrough: true }) res: Response,
+    @Res() res: Response,
   ) {
     const exportFile = await this.reportsService.exportPlanFactServiceLineExcel(
       serviceLineId,
     );
 
-    res.setHeader('Content-Type', exportFile.contentType);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${encodeURIComponent(exportFile.filename)}"`,
+      `attachment; filename="plan-fact-${serviceLineId}.xlsx"`,
     );
-
-    return exportFile.buffer;
+    res.end(Buffer.from(exportFile.buffer));
   }
 }
