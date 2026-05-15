@@ -18,4 +18,7 @@ export class AiAgentChatResponseDto {
 
   @ApiProperty({ example: '2026-05-15T12:00:00.000Z' })
   createdAt: string;
+
+  @ApiPropertyOptional({ example: true })
+  documentContextUsed?: boolean;
 }
