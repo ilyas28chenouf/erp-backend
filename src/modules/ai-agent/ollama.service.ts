@@ -30,7 +30,7 @@ export class OllamaService {
   async chat(messages: AiAgentMessage[]) {
     const baseUrl = this.configService.get<string>(
       'OLLAMA_BASE_URL',
-      'http://localhost:11434',
+      'http://192.168.0.70:11434',
     );
     const model = this.configService.get<string>(
       'AI_AGENT_MODEL',
