@@ -22,7 +22,7 @@ export class AiAgentController {
 
   @Post('chat')
   @ApiOperation({
-    summary: 'Chat with MEC AI Agent',
+    summary: 'Пообщайтесь с агентом MEC AI',
     description:
       'Sends a user message to the backend AI agent, which uses local Ollama and ERP context.',
   })
