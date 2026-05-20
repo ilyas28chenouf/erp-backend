@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AiAgentModule } from './modules/ai-agent/ai-agent.module';
+import { ActionLogsModule } from './modules/action-logs/action-logs.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CustomersModule } from './modules/customers/customers.module';
@@ -38,6 +39,7 @@ import { HealthController } from './health.controller';
         logging: configService.get<string>('DB_LOGGING', 'false') === 'true',
       }),
     }),
+    ActionLogsModule,
     AiAgentModule,
     AuthModule,
     CustomersModule,

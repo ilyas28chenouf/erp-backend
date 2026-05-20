@@ -12,6 +12,8 @@ import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { DataSource } from 'typeorm';
 
+import { ActionLogActionType } from '../../../action-logs/domain/enums/action-log-action-type.enum';
+import { ActionLogsService } from '../../../action-logs/action-logs.service';
 import { UsersService } from '../../../users/application/services/users.service';
 import { DOCUMENTS_REPOSITORY } from '../../domain/interfaces/documents.repository.interface';
 import type { DocumentsRepositoryInterface } from '../../domain/interfaces/documents.repository.interface';
@@ -58,11 +60,21 @@ export class DocumentsService {
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
+    private readonly actionLogsService: ActionLogsService,
   ) {}
 
   async createDocumentFolder(dto: CreateDocumentFolderDto) {
     await this.validateFolderHierarchy(dto);
-    return this.documentsRepository.createDocumentFolder(dto);
+    const created = await this.documentsRepository.createDocumentFolder(dto);
+    await this.actionLogsService.logCreate({
+      entityType: 'DOCUMENT_FOLDER',
+      entityId: created.id,
+      entityLabel: created.name,
+      description: 'Document folder created.',
+      afterData: created,
+    });
+
+    return created;
   }
 
   findDocumentFolders(query: QueryDocumentFoldersDto) {
@@ -82,7 +94,7 @@ export class DocumentsService {
   }
 
   async updateDocumentFolder(id: string, dto: UpdateDocumentFolderDto) {
-    await this.findDocumentFolder(id);
+    const existing = await this.findDocumentFolder(id);
     await this.validateFolderHierarchy(dto, id);
 
     const updated = await this.documentsRepository.updateDocumentFolder(id, dto);
@@ -91,19 +103,43 @@ export class DocumentsService {
         `Document folder with id "${id}" was not found.`,
       );
     }
+    await this.actionLogsService.logUpdate({
+      entityType: 'DOCUMENT_FOLDER',
+      entityId: updated.id,
+      entityLabel: updated.name,
+      description: 'Document folder updated.',
+      beforeData: existing,
+      afterData: updated,
+    });
     return updated;
   }
 
   async removeDocumentFolder(id: string) {
-    await this.findDocumentFolder(id);
+    const existing = await this.findDocumentFolder(id);
     await this.documentsRepository.removeDocumentFolder(id);
+    await this.actionLogsService.logDelete({
+      entityType: 'DOCUMENT_FOLDER',
+      entityId: existing.id,
+      entityLabel: existing.name,
+      description: 'Document folder deleted.',
+      beforeData: existing,
+    });
   }
 
-  createDocument(dto: CreateDocumentDto) {
-    return this.documentsRepository.createDocument({
+  async createDocument(dto: CreateDocumentDto) {
+    const created = await this.documentsRepository.createDocument({
       ...dto,
       currentVersionNumber: dto.currentVersionNumber ?? 1,
     });
+    await this.actionLogsService.logCreate({
+      entityType: 'DOCUMENT',
+      entityId: created.id,
+      entityLabel: created.title,
+      description: 'Document created.',
+      afterData: created,
+    });
+
+    return created;
   }
 
   async createDocumentsFromFiles(
@@ -177,6 +213,33 @@ export class DocumentsService {
       const createdDocuments = await Promise.all(
         createdDocumentIds.map((documentId) => this.findDocument(documentId)),
       );
+      await Promise.all(
+        createdDocuments.map(async (document) => {
+          await this.actionLogsService.logCreate({
+            entityType: 'DOCUMENT',
+            entityId: document.id,
+            entityLabel: document.title,
+            description: 'Document created from uploaded file.',
+            afterData: document,
+          });
+          const firstVersion = document.versions?.[0];
+          if (firstVersion) {
+            await this.actionLogsService.logFileUpload({
+              entityType: 'DOCUMENT_VERSION',
+              entityId: firstVersion.id,
+              entityLabel: firstVersion.fileName,
+              description: 'Document version uploaded.',
+              afterData: firstVersion,
+              metadata: {
+                documentId: document.id,
+                fileName: firstVersion.fileName,
+                mimeType: firstVersion.mimeType,
+                sizeBytes: firstVersion.sizeBytes,
+              },
+            });
+          }
+        }),
+      );
 
       return createdDocuments;
     } catch (error) {
@@ -206,16 +269,32 @@ export class DocumentsService {
   }
 
   async updateDocument(id: string, dto: UpdateDocumentDto) {
+    const existing = await this.findDocument(id);
     const updated = await this.documentsRepository.updateDocument(id, dto);
     if (!updated) {
       throw new NotFoundException(`Document with id "${id}" was not found.`);
     }
+    await this.actionLogsService.logUpdate({
+      entityType: 'DOCUMENT',
+      entityId: updated.id,
+      entityLabel: updated.title,
+      description: 'Document updated.',
+      beforeData: existing,
+      afterData: updated,
+    });
     return updated;
   }
 
   async removeDocument(id: string) {
-    await this.findDocument(id);
+    const existing = await this.findDocument(id);
     await this.documentsRepository.removeDocument(id);
+    await this.actionLogsService.logDelete({
+      entityType: 'DOCUMENT',
+      entityId: existing.id,
+      entityLabel: existing.title,
+      description: 'Document deleted.',
+      beforeData: existing,
+    });
   }
 
   async createDocumentVersion(
@@ -258,6 +337,19 @@ export class DocumentsService {
     await this.documentsRepository.updateDocument(dto.documentId, {
       currentVersionNumber: versionNumber,
     } as MutableDocumentUpdate);
+    await this.actionLogsService.logFileUpload({
+      entityType: 'DOCUMENT_VERSION',
+      entityId: createdVersion.id,
+      entityLabel: createdVersion.fileName,
+      description: 'Document version uploaded.',
+      afterData: createdVersion,
+      metadata: {
+        documentId: createdVersion.documentId,
+        fileName: createdVersion.fileName,
+        mimeType: createdVersion.mimeType,
+        sizeBytes: createdVersion.sizeBytes,
+      },
+    });
 
     return createdVersion;
   }
@@ -279,18 +371,34 @@ export class DocumentsService {
   }
 
   async updateDocumentVersion(id: string, dto: UpdateDocumentVersionDto) {
+    const existing = await this.findDocumentVersion(id);
     const updated = await this.documentsRepository.updateDocumentVersion(id, dto);
     if (!updated) {
       throw new NotFoundException(
         `Document version with id "${id}" was not found.`,
       );
     }
+    await this.actionLogsService.logUpdate({
+      entityType: 'DOCUMENT_VERSION',
+      entityId: updated.id,
+      entityLabel: updated.fileName,
+      description: 'Document version updated.',
+      beforeData: existing,
+      afterData: updated,
+    });
     return updated;
   }
 
   async removeDocumentVersion(id: string) {
-    await this.findDocumentVersion(id);
+    const existing = await this.findDocumentVersion(id);
     await this.documentsRepository.removeDocumentVersion(id);
+    await this.actionLogsService.logDelete({
+      entityType: 'DOCUMENT_VERSION',
+      entityId: existing.id,
+      entityLabel: existing.fileName,
+      description: 'Document version deleted.',
+      beforeData: existing,
+    });
   }
 
   async getDocumentVersionFile(id: string) {
@@ -338,10 +446,19 @@ export class DocumentsService {
     await this.findDocumentVersion(dto.documentVersionId);
     await this.usersService.findOne(authorUserId);
 
-    return this.documentsRepository.createDocumentVersionComment({
+    const created = await this.documentsRepository.createDocumentVersionComment({
       ...dto,
       authorUserId,
     });
+    await this.actionLogsService.logCreate({
+      entityType: 'DOCUMENT_VERSION_COMMENT',
+      entityId: created.id,
+      entityLabel: created.documentVersionId,
+      description: 'Document version comment created.',
+      afterData: created,
+    });
+
+    return created;
   }
 
   findDocumentVersionComments(query: QueryDocumentVersionCommentsDto) {
@@ -366,6 +483,7 @@ export class DocumentsService {
     id: string,
     dto: UpdateDocumentVersionCommentDto,
   ) {
+    const existing = await this.findDocumentVersionComment(id);
     const updated = await this.documentsRepository.updateDocumentVersionComment(
       id,
       dto,
@@ -375,12 +493,27 @@ export class DocumentsService {
         `Document version comment with id "${id}" was not found.`,
       );
     }
+    await this.actionLogsService.logUpdate({
+      entityType: 'DOCUMENT_VERSION_COMMENT',
+      entityId: updated.id,
+      entityLabel: updated.documentVersionId,
+      description: 'Document version comment updated.',
+      beforeData: existing,
+      afterData: updated,
+    });
     return updated;
   }
 
   async removeDocumentVersionComment(id: string) {
-    await this.findDocumentVersionComment(id);
+    const existing = await this.findDocumentVersionComment(id);
     await this.documentsRepository.removeDocumentVersionComment(id);
+    await this.actionLogsService.logDelete({
+      entityType: 'DOCUMENT_VERSION_COMMENT',
+      entityId: existing.id,
+      entityLabel: existing.documentVersionId,
+      description: 'Document version comment deleted.',
+      beforeData: existing,
+    });
   }
 
 async saveOnlyOfficeEditedVersion(
@@ -434,6 +567,19 @@ async saveOnlyOfficeEditedVersion(
       `Document version with id "${sourceVersion.id}" was not found.`,
     );
   }
+  await this.actionLogsService.safeLog({
+    actionType: ActionLogActionType.UPDATE_FILE,
+    entityType: 'DOCUMENT_VERSION',
+    entityId: updatedVersion.id,
+    entityLabel: updatedVersion.fileName,
+    description: 'Document version file updated from ONLYOFFICE.',
+    beforeData: sourceVersion,
+    afterData: updatedVersion,
+    metadata: {
+      fileType: originalExt,
+      sizeBytes: buffer.byteLength,
+    },
+  });
 
   return updatedVersion;
 }

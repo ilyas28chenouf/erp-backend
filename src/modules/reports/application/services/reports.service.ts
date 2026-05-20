@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import ExcelJS from 'exceljs';
 import { Repository } from 'typeorm';
+import { ActionLogsService } from '../../../action-logs/action-logs.service';
 import { AuditLogOrmEntity } from '../../../audit/infrastructure/persistence/audit-log.orm-entity';
 import { DocumentOrmEntity } from '../../../documents/infrastructure/persistence/document.orm-entity';
 import { BudgetPlanOrmEntity } from '../../../finance/infrastructure/persistence/budget-plan.orm-entity';
@@ -38,6 +39,7 @@ export class ReportsService {
     private readonly serviceLinesRepository: Repository<ServiceLineOrmEntity>,
     @InjectRepository(PlanFactEntryOrmEntity)
     private readonly planFactEntriesRepository: Repository<PlanFactEntryOrmEntity>,
+    private readonly actionLogsService: ActionLogsService,
   ) {}
 
   async getOverview() {
@@ -350,6 +352,18 @@ export class ReportsService {
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
+    await this.actionLogsService.logExport({
+      entityType: 'REPORT',
+      entityId: report.serviceLineId,
+      entityLabel: report.serviceLineTitle,
+      description: 'Plan/fact service line Excel report exported.',
+      metadata: {
+        reportType: 'PLAN_FACT_SERVICE_LINE_EXCEL',
+        serviceLineId: report.serviceLineId,
+        customerName: report.customerName,
+        projectName: report.projectName,
+      },
+    });
 
     return {
       filename: `plan-fact-${this.slugify(report.customerName ?? 'service-line')}-${this.slugify(report.serviceLineTitle)}.xlsx`,

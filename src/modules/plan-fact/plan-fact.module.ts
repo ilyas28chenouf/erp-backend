@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ActionLogsModule } from '../action-logs/action-logs.module';
 import { DocumentsModule } from '../documents/documents.module';
 import { PLAN_FACT_REPOSITORY } from './domain/interfaces/plan-fact.repository.interface';
 import { PlanFactService } from './application/services/plan-fact.service';
@@ -14,6 +15,7 @@ import { WorkOrdersController } from './presentation/controllers/work-orders.con
 
 @Module({
   imports: [
+    ActionLogsModule,
     DocumentsModule,
     TypeOrmModule.forFeature([
       ServiceLineOrmEntity,

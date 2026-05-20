@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ActionLogsModule } from '../action-logs/action-logs.module';
 import {
   PROJECTS_REPOSITORY,
 } from './domain/interfaces/projects.repository.interface';
@@ -11,7 +12,10 @@ import { ProjectMembersController } from './presentation/controllers/project-mem
 import { ProjectsController } from './presentation/controllers/projects.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ProjectOrmEntity, ProjectMemberOrmEntity])],
+  imports: [
+    ActionLogsModule,
+    TypeOrmModule.forFeature([ProjectOrmEntity, ProjectMemberOrmEntity]),
+  ],
   controllers: [ProjectsController, ProjectMembersController],
   providers: [
     ProjectsService,

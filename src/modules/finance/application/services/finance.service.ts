@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ActionLogsService } from '../../../action-logs/action-logs.service';
 import { FINANCE_REPOSITORY } from '../../domain/interfaces/finance.repository.interface';
 import type { FinanceRepositoryInterface } from '../../domain/interfaces/finance.repository.interface';
 import { CreateBudgetPlanDto } from '../dto/create-budget-plan.dto';
@@ -22,13 +23,23 @@ export class FinanceService {
   constructor(
     @Inject(FINANCE_REPOSITORY)
     private readonly financeRepository: FinanceRepositoryInterface,
+    private readonly actionLogsService: ActionLogsService,
   ) {}
 
-  createFinanceCategory(dto: CreateFinanceCategoryDto) {
-    return this.financeRepository.createFinanceCategory({
+  async createFinanceCategory(dto: CreateFinanceCategoryDto) {
+    const created = await this.financeRepository.createFinanceCategory({
       ...dto,
       isActive: dto.isActive ?? true,
     });
+    await this.actionLogsService.logCreate({
+      entityType: 'FINANCE_CATEGORY',
+      entityId: created.id,
+      entityLabel: created.name,
+      description: 'Finance category created.',
+      afterData: created,
+    });
+
+    return created;
   }
 
   findFinanceCategories(query: QueryFinanceCategoriesDto) {
@@ -42,21 +53,46 @@ export class FinanceService {
   }
 
   async updateFinanceCategory(id: string, dto: UpdateFinanceCategoryDto) {
+    const existing = await this.findFinanceCategory(id);
     const updated = await this.financeRepository.updateFinanceCategory(id, dto);
     if (!updated) throw new NotFoundException(`Finance category with id "${id}" was not found.`);
+    await this.actionLogsService.logUpdate({
+      entityType: 'FINANCE_CATEGORY',
+      entityId: updated.id,
+      entityLabel: updated.name,
+      description: 'Finance category updated.',
+      beforeData: existing,
+      afterData: updated,
+    });
     return updated;
   }
 
   async removeFinanceCategory(id: string) {
-    await this.findFinanceCategory(id);
+    const existing = await this.findFinanceCategory(id);
     await this.financeRepository.removeFinanceCategory(id);
+    await this.actionLogsService.logDelete({
+      entityType: 'FINANCE_CATEGORY',
+      entityId: existing.id,
+      entityLabel: existing.name,
+      description: 'Finance category deleted.',
+      beforeData: existing,
+    });
   }
 
-  createFinanceSubcategory(dto: CreateFinanceSubcategoryDto) {
-    return this.financeRepository.createFinanceSubcategory({
+  async createFinanceSubcategory(dto: CreateFinanceSubcategoryDto) {
+    const created = await this.financeRepository.createFinanceSubcategory({
       ...dto,
       isActive: dto.isActive ?? true,
     });
+    await this.actionLogsService.logCreate({
+      entityType: 'FINANCE_SUBCATEGORY',
+      entityId: created.id,
+      entityLabel: created.name,
+      description: 'Finance subcategory created.',
+      afterData: created,
+    });
+
+    return created;
   }
 
   findFinanceSubcategories(query: QueryFinanceSubcategoriesDto) {
@@ -70,14 +106,30 @@ export class FinanceService {
   }
 
   async updateFinanceSubcategory(id: string, dto: UpdateFinanceSubcategoryDto) {
+    const existing = await this.findFinanceSubcategory(id);
     const updated = await this.financeRepository.updateFinanceSubcategory(id, dto);
     if (!updated) throw new NotFoundException(`Finance subcategory with id "${id}" was not found.`);
+    await this.actionLogsService.logUpdate({
+      entityType: 'FINANCE_SUBCATEGORY',
+      entityId: updated.id,
+      entityLabel: updated.name,
+      description: 'Finance subcategory updated.',
+      beforeData: existing,
+      afterData: updated,
+    });
     return updated;
   }
 
   async removeFinanceSubcategory(id: string) {
-    await this.findFinanceSubcategory(id);
+    const existing = await this.findFinanceSubcategory(id);
     await this.financeRepository.removeFinanceSubcategory(id);
+    await this.actionLogsService.logDelete({
+      entityType: 'FINANCE_SUBCATEGORY',
+      entityId: existing.id,
+      entityLabel: existing.name,
+      description: 'Finance subcategory deleted.',
+      beforeData: existing,
+    });
   }
 
   createCounterparty(dto: CreateCounterpartyDto) {
@@ -105,8 +157,17 @@ export class FinanceService {
     await this.financeRepository.removeCounterparty(id);
   }
 
-  createPaymentRegistryEntry(dto: CreatePaymentRegistryEntryDto) {
-    return this.financeRepository.createPaymentRegistryEntry(dto);
+  async createPaymentRegistryEntry(dto: CreatePaymentRegistryEntryDto) {
+    const created = await this.financeRepository.createPaymentRegistryEntry(dto);
+    await this.actionLogsService.logCreate({
+      entityType: 'PAYMENT_REGISTRY_ENTRY',
+      entityId: created.id,
+      entityLabel: created.weekLabel ?? null,
+      description: 'Payment registry entry created.',
+      afterData: created,
+    });
+
+    return created;
   }
 
   findPaymentRegistryEntries(query: QueryPaymentRegistryEntriesDto) {
@@ -120,14 +181,30 @@ export class FinanceService {
   }
 
   async updatePaymentRegistryEntry(id: string, dto: UpdatePaymentRegistryEntryDto) {
+    const existing = await this.findPaymentRegistryEntry(id);
     const updated = await this.financeRepository.updatePaymentRegistryEntry(id, dto);
     if (!updated) throw new NotFoundException(`Payment registry entry with id "${id}" was not found.`);
+    await this.actionLogsService.logUpdate({
+      entityType: 'PAYMENT_REGISTRY_ENTRY',
+      entityId: updated.id,
+      entityLabel: updated.weekLabel ?? null,
+      description: 'Payment registry entry updated.',
+      beforeData: existing,
+      afterData: updated,
+    });
     return updated;
   }
 
   async removePaymentRegistryEntry(id: string) {
-    await this.findPaymentRegistryEntry(id);
+    const existing = await this.findPaymentRegistryEntry(id);
     await this.financeRepository.removePaymentRegistryEntry(id);
+    await this.actionLogsService.logDelete({
+      entityType: 'PAYMENT_REGISTRY_ENTRY',
+      entityId: existing.id,
+      entityLabel: existing.weekLabel ?? null,
+      description: 'Payment registry entry deleted.',
+      beforeData: existing,
+    });
   }
 
   createBudgetPlan(dto: CreateBudgetPlanDto) {

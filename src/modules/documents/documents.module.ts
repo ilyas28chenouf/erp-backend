@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DOCUMENTS_REPOSITORY } from './domain/interfaces/documents.repository.interface';
+import { ActionLogsModule } from '../action-logs/action-logs.module';
 import { UsersModule } from '../users/users.module';
 import { DocumentsService } from './application/services/documents.service';
 import { DocumentFolderOrmEntity } from './infrastructure/persistence/document-folder.orm-entity';
@@ -15,6 +16,7 @@ import { DocumentVersionsController } from './presentation/controllers/document-
 import { DocumentVersionOnlyOfficeController } from './presentation/document-version-onlyoffice.controller';
 @Module({
   imports: [
+    ActionLogsModule,
     UsersModule,
     TypeOrmModule.forFeature([
       DocumentFolderOrmEntity,

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ActionLogsModule } from '../action-logs/action-logs.module';
 import { AuditLogOrmEntity } from '../audit/infrastructure/persistence/audit-log.orm-entity';
 import { DocumentOrmEntity } from '../documents/infrastructure/persistence/document.orm-entity';
 import { BudgetPlanOrmEntity } from '../finance/infrastructure/persistence/budget-plan.orm-entity';
@@ -14,6 +15,7 @@ import { ReportsController } from './presentation/controllers/reports.controller
 
 @Module({
   imports: [
+    ActionLogsModule,
     TypeOrmModule.forFeature([
       UserOrmEntity,
       ProjectOrmEntity,

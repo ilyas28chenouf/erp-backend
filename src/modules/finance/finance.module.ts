@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ActionLogsModule } from '../action-logs/action-logs.module';
 import { FINANCE_REPOSITORY } from './domain/interfaces/finance.repository.interface';
 import { FinanceService } from './application/services/finance.service';
 import { BudgetPlanOrmEntity } from './infrastructure/persistence/budget-plan.orm-entity';
@@ -16,6 +17,7 @@ import { PaymentRegistryEntriesController } from './presentation/controllers/pay
 
 @Module({
   imports: [
+    ActionLogsModule,
     TypeOrmModule.forFeature([
       FinanceCategoryOrmEntity,
       FinanceSubcategoryOrmEntity,

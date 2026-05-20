@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ActionLogsService } from '../../../action-logs/action-logs.service';
 import {
   PROJECTS_REPOSITORY,
 } from '../../domain/interfaces/projects.repository.interface';
@@ -19,16 +20,26 @@ export class ProjectsService {
   constructor(
     @Inject(PROJECTS_REPOSITORY)
     private readonly projectsRepository: ProjectsRepositoryInterface,
+    private readonly actionLogsService: ActionLogsService,
   ) {}
 
-  createProject(createProjectDto: CreateProjectDto) {
-    return this.projectsRepository.createProject({
+  async createProject(createProjectDto: CreateProjectDto) {
+    const created = await this.projectsRepository.createProject({
       ...createProjectDto,
       startDate: createProjectDto.startDate.toISOString().slice(0, 10),
       deadline: createProjectDto.deadline
         ? createProjectDto.deadline.toISOString().slice(0, 10)
         : null,
     });
+    await this.actionLogsService.logCreate({
+      entityType: 'PROJECT',
+      entityId: created.id,
+      entityLabel: created.name,
+      description: 'Project created.',
+      afterData: created,
+    });
+
+    return created;
   }
 
   findProjects(query: QueryProjectsDto) {
@@ -44,6 +55,7 @@ export class ProjectsService {
   }
 
   async updateProject(id: string, updateProjectDto: UpdateProjectDto) {
+    const existing = await this.findProject(id);
     const updated = await this.projectsRepository.updateProject(id, {
       ...updateProjectDto,
       startDate: updateProjectDto.startDate
@@ -58,12 +70,27 @@ export class ProjectsService {
     if (!updated) {
       throw new NotFoundException(`Project with id "${id}" was not found.`);
     }
+    await this.actionLogsService.logUpdate({
+      entityType: 'PROJECT',
+      entityId: updated.id,
+      entityLabel: updated.name,
+      description: 'Project updated.',
+      beforeData: existing,
+      afterData: updated,
+    });
     return updated;
   }
 
   async removeProject(id: string) {
-    await this.findProject(id);
+    const existing = await this.findProject(id);
     await this.projectsRepository.removeProject(id);
+    await this.actionLogsService.logDelete({
+      entityType: 'PROJECT',
+      entityId: existing.id,
+      entityLabel: existing.name,
+      description: 'Project deleted.',
+      beforeData: existing,
+    });
   }
 
   createProjectMember(createProjectMemberDto: CreateProjectMemberDto) {
