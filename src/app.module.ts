@@ -11,6 +11,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { PlanFactModule } from './modules/plan-fact/plan-fact.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { SyncModule } from './modules/sync/sync.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { UsersModule } from './modules/users/users.module';
 import { HealthController } from './health.controller';
@@ -51,6 +52,7 @@ import { HealthController } from './health.controller';
     AuditModule,
     PlanFactModule,
     ReportsModule,
+    SyncModule,
   ],
   controllers: [HealthController],
 
